@@ -13,6 +13,28 @@
 (defvar *status* 'new-instance)
 (defvar *server-address* "127.0.0.1")
 (defvar *server-port* 4321)
+(defvar *config-file* "config")
+
+(define-condition cannot-read-config-file-error (error)
+  ((file :initarg :text :accessor text)))
+
+(defun quit-program ()
+  (quit))
+
+(defun invoke-quit-program ()
+  (invoke-restart 'quit-program))
+
+(defun read-config-from-file (file)
+  (restart-case (with-open-file (stream file)
+                  (let ((contents (make-string (file-length stream))))
+                    (read-sequence contents stream)
+                    (read-from-string contents)))
+    (quit-program () (quit-program))))
+
+(defun set-config (config)
+  (defparameter config (read-config-from-file *config-file*))
+  (setf *server-address* (getf config ':server-address)
+        *server-port* (getf config ':server-port)))
 
 (defun lock-screen ()
   (format t "Locking screen.")
