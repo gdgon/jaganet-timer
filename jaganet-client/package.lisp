@@ -4,4 +4,5 @@
   (:use #:cl
         #:cffi
         #:ltk
-        #:usocket))
+        #:usocket
+        #:bordeaux-threads))
