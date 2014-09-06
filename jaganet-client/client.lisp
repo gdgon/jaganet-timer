@@ -47,7 +47,7 @@
         *server-port* (getf config ':server-port)))
 
 (defun lock-screen ()
-  (format t "Locking screen.")
+  (format t "Locking screen.~&")
   (bt:make-thread
     (lambda ()
       (loop while (eql *status* 'stopped)
@@ -56,7 +56,7 @@
 (defun add-time (minutes)
   (if (numberp minutes)
     (progn
-      (defparameter *status* 'limited-session)j
+      (defparameter *status* 'limited-session)
       (defparameter *time-remaining* (+ *time-remaining* minutes))
       (format t "Added ~a minutes." minutes))
     (error 'type-error :datum minutes :expected-type 'integer)))
@@ -77,10 +77,11 @@
 
 (defun main ()
   (cffi::load-foreign-library "WinLockDll.dll")
+  (set-config (read-config-from-file "config"))
 
   (network-setup *server-address* *server-port*)
 
   (loop while (not (eql *status* 'quit))
-        do (read-and-process-message))
+    do (read-and-process-message))
 
-  (quit))
+  (quit-program))
