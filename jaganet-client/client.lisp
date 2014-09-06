@@ -15,11 +15,15 @@
 (defvar *server-port* 4321)
 (defvar *config-file* "config")
 
+(defun prompt-to-list (prompt-message)
+  (format t prompt-message)
+  (multiple-value-list (read)))
+
 (define-condition cannot-read-config-file-error (error)
   ((file :initarg :text :accessor text)))
 
 (defun quit-program ()
-  (quit))
+  (cl-user::quit))
 
 (defun invoke-quit-program ()
   (invoke-restart 'quit-program))
@@ -29,7 +33,13 @@
                   (let ((contents (make-string (file-length stream))))
                     (read-sequence contents stream)
                     (read-from-string contents)))
-    (quit-program () (quit-program))))
+    (try-different-file (new-file)
+      :report "Try to open a different config file."
+      :interactive (lambda () (prompt-to-list "Enter new filename: "))
+      (read-config-from-file new-file))
+    (quit-program ()
+      :report "Quit the program."
+      (quit-program))))
 
 (defun set-config (config)
   (defparameter config (read-config-from-file *config-file*))
@@ -66,7 +76,6 @@
   (process-message (stream-read)))
 
 (defun main ()
-  ;; Workaround where cffi can't find the dll when run as an executable image
   (cffi::load-foreign-library "WinLockDll.dll")
 
   (network-setup *server-address* *server-port*)
