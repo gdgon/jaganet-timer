@@ -1,3 +1,4 @@
+;;;; winlock.lisp
 (in-package #:jaganet-client)
 
 (cffi:define-foreign-library winlock
@@ -5,9 +6,8 @@
 
 (cffi:use-foreign-library winlock)
 
-(cffi:defctype winlock-code :int)
+(cffi:defcfun "Desktop_Show_Hide" :int (bShowHide :boolean))
+(cffi:defcfun "Taskbar_Show_Hide" :int (bShowHide :boolean))
+(cffi:defcfun "TaskSwitching_Enable_Disable" :int (bShowHide :boolean))
 
-(cffi:defcfun "Taskbar_Show_Hide" winlock-code (bShowHide :boolean))
-(cffi:defcfun "TaskSwitching_Enable_Disable" winlock-code (bShowHide :boolean))
-
-(cffi:defcfun "Process_Desktop" winlock-code (szDesktopName :string) (szPath :string))
+(cffi:defcfun "Process_Desktop" :int (szDesktopName :string) (szPath :string))
