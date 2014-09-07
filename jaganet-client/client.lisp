@@ -65,7 +65,7 @@
     (progn
       (when (eql *status* 'stopped)
         (start-session 'limited-time))
-      (defparameter *status* 'limited-session)
+      (defparameter *status* 'limited-time)
       (defparameter *time-remaining* (+ *time-remaining* minutes))
       (format t "Added ~a minutes." minutes))
     (error 'type-error :datum minutes :expected-type 'integer)))
@@ -110,7 +110,7 @@
 
 (defun get-used-seconds ()
   (let ((total-seconds-paused
-          (if (or (eql *status* 'limited-session)
+          (if (or (eql *status* 'limited-time)
                   (eql *status* 'open-time))
             *seconds-paused*
             (+ *seconds-paused* (- (get-universal-time) *last-pause-time*)))))
@@ -118,38 +118,55 @@
        total-seconds-paused)))
 
 ;;; GUI
-(defun counter-window ()
-  (with-ltk ()
+
+(defun client-window ()
+  (start-wish)
+  ;(with-ltk ()
     (wm-title *tk* "Jaganet Client")
-    (let* ((f
+    (defparameter f
              (make-instance 'ltk:frame
                              :master nil))
-           (time-label
+    (defparameter time-label
              (make-instance 'ltk:labelframe
                             :master f
                             :width 10
                             :text "Time remaining:"))
-           (time-text
+    (defparameter time-text
              (make-instance 'ltk:label
                             :master time-label))
-           (cost-label
+    (defparameter cost-label
              (make-instance 'ltk:labelframe
                             :master f
                             :width 10
                             :text "Total cost:"))
-           (cost-text
+    (defparameter cost-text
              (make-instance 'ltk:label
                             :master cost-label))
-           (logout-button
+    (defparameter logout-button
              (make-instance 'ltk:button
                             :master f
-                            :text "Logout")))
+                            :text "Logout"))
+
       (pack f)
       (pack time-label)
       (pack time-text)
       (pack cost-label)
       (pack cost-text)
-      (pack logout-button))))
+      (pack logout-button))
+
+(defun update-client-window ()
+  (loop
+    (progn
+      (setf (text time-text) (write-to-string (get-used-seconds)))
+      (setf (text cost-text) (with-output-to-string (stream)
+                               (format stream "~$" (/ (get-used-seconds) 6))))
+      (sleep 1))))
+
+(defun start-client-window ()
+  (client-window)
+  (bt:make-thread #'update-client-window :name "update-client-window"))
+
+;;;
 
 (defun main ()
   (cffi::load-foreign-library "WinLockDll.dll")
