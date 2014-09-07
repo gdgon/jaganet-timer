@@ -22,7 +22,7 @@
   (defparameter *status* 'bla)
   (stop)
   (lisp-unit:assert-equal 'stopped *status*)
-  (defparamter *status* 'new))
+  (defparameter *status* 'new))
 
 (lisp-unit:define-test test-process-message
   (defparameter *time-remaining* 0)
@@ -34,11 +34,29 @@
 
   (process-message '(:stop))
   (lisp-unit:assert-eql 'stopped *status*)
-  (defparamter *status* 'new))
+  (defparameter *status* 'new))
 
 
 (lisp-unit:define-test test-set-config
   (set-config '(:server-address "127.0.0.1" :server-port 4321))
   (lisp-unit:assert-equal "127.0.0.1" *server-address*)
   (lisp-unit:assert-equal 4321 *server-port*))
+
+(lisp-unit:define-test test-timer
+  (setf *status* 'limited-session)
+  (start-timer)
+  (lisp-unit:assert-equal *start-time* (get-universal-time))
+
+  (pause-timer)
+  (lisp-unit:assert-equal *last-pause-time* (get-universal-time))
+  (lisp-unit:assert-eql *status-before-pause* 'limited-session)
+  (lisp-unit:assert-eql *status* 'paused)
+
+  (sleep 3)
+
+  (unpause-timer)
+  (lisp-unit:assert-equal *seconds-paused* (- (get-universal-time) *last-pause-time*))
+  (lisp-unit:assert-equal (get-used-seconds) (- (- (get-universal-time) *start-time*)
+                                                *seconds-paused*))
+  (lisp-unit:assert-eql *status* 'limited-session))
 
