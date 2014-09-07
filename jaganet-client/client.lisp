@@ -110,10 +110,9 @@
 
 (defun get-used-seconds ()
   (let ((total-seconds-paused
-          (if (or (eql *status* 'limited-time)
-                  (eql *status* 'open-time))
-            *seconds-paused*
-            (+ *seconds-paused* (- (get-universal-time) *last-pause-time*)))))
+          (if (eql *status* 'paused)
+            (+ *seconds-paused* (- (get-universal-time) *last-pause-time*))
+            *seconds-paused*)))
     (- (- (get-universal-time) *start-time*)
        total-seconds-paused)))
 
@@ -121,7 +120,6 @@
 
 (defun client-window ()
   (start-wish)
-  ;(with-ltk ()
     (wm-title *tk* "Jaganet Client")
     (defparameter f
              (make-instance 'ltk:frame
@@ -147,6 +145,8 @@
                             :master f
                             :text "Logout"))
 
+    (on-close *tk* (lambda () (format t "Closed")))
+
       (pack f)
       (pack time-label)
       (pack time-text)
@@ -156,11 +156,12 @@
 
 (defun update-client-window ()
   (loop
-    (progn
-      (setf (text time-text) (write-to-string (get-used-seconds)))
-      (setf (text cost-text) (with-output-to-string (stream)
-                               (format stream "~$" (/ (get-used-seconds) 6))))
-      (sleep 1))))
+    (unless (eql *status* 'stopped)
+      (progn
+        (setf (text time-text) (write-to-string (get-used-seconds)))
+        (setf (text cost-text) (with-output-to-string (stream)
+                                 (format stream "~$" (/ (get-used-seconds) 6))))))
+    (sleep 1)))
 
 (defun start-client-window ()
   (client-window)
