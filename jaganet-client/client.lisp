@@ -48,10 +48,11 @@
 
 (defun lock-screen ()
   (format t "Locking screen.~&")
-  (bt:make-thread
-    (lambda ()
-      (loop while (eql *status* 'stopped)
-        do (process-desktop "lockScreen" "C:/windows/system32/calc.exe")))))
+  ;(bt:make-thread
+    ;(lambda ()
+      ;(loop while (eql *status* 'stopped)
+        ;do (process-desktop "lockScreen" "C:/windows/system32/calc.exe")))))
+        )
 
 (defun add-time (minutes)
   (if (numberp minutes)
@@ -74,6 +75,31 @@
 
 (defun read-and-process-message ()
   (process-message (stream-read)))
+
+;;; Timekeeping
+(defvar *start-time*)
+;;*end-time*
+(defvar *seconds-paused* 0)
+;;*last-pause-time*
+(defvar *status-before-pause*)
+
+(defun start-timer ()
+  (setf *start-time* (get-universal-time)))
+
+(defun pause-timer ()
+  (unless (eql *status* 'paused)
+    (setf *status-before-pause* *status*)
+    (setf *status* 'paused)
+    (setf *last-pause-time* (get-universal-time))))
+
+(defun unpause-timer ()
+  (when (eql *status* 'paused)
+    (setf *status* *status-before-pause*)
+    (setf *seconds-paused* (- (get-universal-time) *last-pause-time*))))
+
+(defun get-used-seconds ()
+  (- (- (get-universal-time) *start-time*)
+     *seconds-paused*))
 
 ;;; GUI
 (defun counter-window ()
