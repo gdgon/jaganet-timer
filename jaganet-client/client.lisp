@@ -10,7 +10,7 @@
 (defvar *time-remaining* 0)
 (defvar *start-time*)
 (defvar *end-time*)
-(defvar *status* 'new-instance)
+(defvar *status* 'stopped)
 (defvar *server-address* "127.0.0.1")
 (defvar *server-port* 4321)
 (defvar *config-file* "config")
@@ -54,9 +54,17 @@
         ;do (process-desktop "lockScreen" "C:/windows/system32/calc.exe")))))
         )
 
+(defun start-session (session-type)
+  (setf *start-time* (get-universal-time)
+        *status* session-type))
+
+;;; Client commands
+
 (defun add-time (minutes)
   (if (numberp minutes)
     (progn
+      (when (eql *status* 'stopped)
+        (start-session 'limited-time))
       (defparameter *status* 'limited-session)
       (defparameter *time-remaining* (+ *time-remaining* minutes))
       (format t "Added ~a minutes." minutes))
@@ -66,6 +74,8 @@
   (defparameter *status* 'stopped)
   (format t "Stopped.~&")
   (lock-screen))
+
+;;; Message/command reader
 
 (defun process-message (message)
   (let ((msg-type (car message))
