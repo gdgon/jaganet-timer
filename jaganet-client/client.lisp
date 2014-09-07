@@ -90,7 +90,7 @@
 (defvar *start-time*)
 ;;*end-time*
 (defvar *seconds-paused* 0)
-;;*last-pause-time*
+(defvar *last-pause-time*)
 (defvar *status-before-pause*)
 
 (defun start-timer ()
@@ -105,11 +105,17 @@
 (defun unpause-timer ()
   (when (eql *status* 'paused)
     (setf *status* *status-before-pause*)
-    (setf *seconds-paused* (- (get-universal-time) *last-pause-time*))))
+    (setf *seconds-paused* (+ *seconds-paused*
+                              (- (get-universal-time) *last-pause-time*)))))
 
 (defun get-used-seconds ()
-  (- (- (get-universal-time) *start-time*)
-     *seconds-paused*))
+  (let ((total-seconds-paused
+          (if (or (eql *status* 'limited-session)
+                  (eql *status* 'open-time))
+            *seconds-paused*
+            (+ *seconds-paused* (- (get-universal-time) *last-pause-time*)))))
+    (- (- (get-universal-time) *start-time*)
+       total-seconds-paused)))
 
 ;;; GUI
 (defun counter-window ()
