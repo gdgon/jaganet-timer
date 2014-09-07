@@ -75,6 +75,40 @@
 (defun read-and-process-message ()
   (process-message (stream-read)))
 
+;;; GUI
+(defun counter-window ()
+  (with-ltk ()
+    (wm-title *tk* "Jaganet Client")
+    (let* ((f
+             (make-instance 'ltk:frame
+                             :master nil))
+           (time-label
+             (make-instance 'ltk:labelframe
+                            :master f
+                            :width 10
+                            :text "Time remaining:"))
+           (time-text
+             (make-instance 'ltk:label
+                            :master time-label))
+           (cost-label
+             (make-instance 'ltk:labelframe
+                            :master f
+                            :width 10
+                            :text "Total cost:"))
+           (cost-text
+             (make-instance 'ltk:label
+                            :master cost-label))
+           (logout-button
+             (make-instance 'ltk:button
+                            :master f
+                            :text "Logout")))
+      (pack f)
+      (pack time-label)
+      (pack time-text)
+      (pack cost-label)
+      (pack cost-text)
+      (pack logout-button))))
+
 (defun main ()
   (cffi::load-foreign-library "WinLockDll.dll")
   (set-config (read-config-from-file "config"))
