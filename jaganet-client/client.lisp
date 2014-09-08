@@ -108,7 +108,7 @@
   (print string (usocket:socket-stream *tcp-stream*))
   (force-output (usocket:socket-stream *tcp-stream*)))
 
-(defun network-setup (address port)
+(defun connect-to-server (address port)
   (defparameter *tcp-stream* (usocket:socket-connect address port)))
 
 ;;; Message/command reader
@@ -254,7 +254,7 @@
   (cffi::load-foreign-library "WinLockDll.dll")
   (set-config (read-config-from-file "config"))
 
-  (network-setup *server-address* *server-port*)
+  (connect-to-server *server-address* *server-port*)
 
   (loop while (not (eql *status* 'quit))
     do (read-and-process-message))
