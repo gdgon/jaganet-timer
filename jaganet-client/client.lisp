@@ -169,9 +169,12 @@
   (loop
     (unless (eql *status* 'stopped)
       (progn
-        (setf (text time-text) (write-to-string (get-used-seconds)))
+        (setf (text time-text) (write-to-string (get-seconds-used)))
         (setf (text cost-text) (with-output-to-string (stream)
-                                 (format stream "~$" (/ (get-used-seconds) 6))))))
+                                 (format stream "~$" (get-total-cost
+                                                       (/ (get-seconds-used) 60)
+                                                       *default-cost-per-hour*
+                                                       :minimum-cost *default-minimum-cost*))))))
     (sleep 1)))
 
 (defun stop-client-window ()
