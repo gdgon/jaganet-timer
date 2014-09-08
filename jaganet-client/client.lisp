@@ -7,7 +7,7 @@
 
 ;;; "jaganet-timer" goes here. Hacks and glory await!
 
-(defvar *minutes-allowed** 0)
+(defvar *minutes-allowed* 0)
 (defvar *start-time*)
 (defvar *end-time*)
 (defvar *status* 'stopped)
@@ -83,7 +83,7 @@
       (when (eql *status* 'stopped)
         (start-session 'limited-time))
       (defparameter *status* 'limited-time)
-      (defparameter *minutes-allowed** (+ *minutes-allowed** minutes))
+      (defparameter *minutes-allowed* (+ *minutes-allowed* minutes))
       (interrupt-thread-by-name "time-end-wait")
       (start-time-end-wait)
       (format t "Added ~a minutes." minutes))
@@ -150,7 +150,7 @@
 
 (defun start-timer ()
   (setf *start-time* (get-universal-time)
-        *minutes-allowed** 0
+        *minutes-allowed* 0
         *last-time-freeze* nil
         *seconds-paused* 0))
 
@@ -184,9 +184,9 @@
 (defun time-end-wait ()
   (handler-case
     (progn
-      (loop while (>= (- (* 60 *minutes-allowed**) (get-seconds-used))
+      (loop while (>= (- (* 60 *minutes-allowed*) (get-seconds-used))
                    0)
-            do (sleep (* 60 *minutes-allowed**)))
+            do (sleep (* 60 *minutes-allowed*)))
       (stop-session))
     (shutting-down () )))
 
