@@ -117,6 +117,15 @@
     (- (- (get-universal-time) *start-time*)
        total-seconds-paused)))
 
+;;; Cost calculation/tracking
+(defvar *total-cost* 0)
+(defvar *default-cost-per-hour* 10)
+(defun get-total-cost (minutes cost-per-hour &key minimum-cost)
+  (let ((cost (* (/ cost-per-hour 60) minutes)))
+    (if (and minimum-cost (< cost minimum-cost))
+      minimum-cost
+      cost)))
+
 ;;; GUI
 
 (defun client-window ()
