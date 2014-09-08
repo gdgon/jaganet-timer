@@ -273,9 +273,6 @@
   (cffi::load-foreign-library "WinLockDll.dll")
   (set-config (read-config-from-file "config"))
 
-  (persistently-connect-to-server *server-address* *server-port*)
+  (start-tcp-reader)
 
-  (loop while (not (eql *status* 'quit))
-    do (read-and-process-message))
-
-  (quit-program))
+  (start-client-window))
