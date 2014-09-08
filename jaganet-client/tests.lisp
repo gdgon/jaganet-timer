@@ -54,3 +54,9 @@
                                                 *seconds-paused*))
   (lisp-unit:assert-eql *status* 'limited-time))
 
+(lisp-unit:define-test test-stop
+  (defparameter *status* 'bla)
+  (stop)
+  (lisp-unit:assert-equal 'stopped *status*)
+  (defparameter *status* 'new))
+
