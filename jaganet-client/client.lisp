@@ -119,13 +119,26 @@
 ;;; Message/command reader
 
 (defun process-message (message)
-  (let ((msg-type (car message))
-        (msg-param (cadr message)))
-  (cond ((eql msg-type :add-time) (add-time msg-param))
-        ((eql msg-type :stop) (stop)))))
+  (handler-case
+    (let ((msg-type (car message))
+          (msg-param (cadr message)))
+      (cond ((eql msg-type :add-time) (add-time msg-param))
+            ((eql msg-type :stop) (stop))))
+    (type-error () "Ignore messages that aren't lists."
+                (format t "Invalid message received: ~a~%"
+                        (write-to-string message)))))
 
-(defun read-and-process-message ()
-  (process-message (stream-read)))
+(defun tcp-reader-loop ()
+  (handler-case
+    (loop
+      (process-message (stream-read)))
+    (end-of-file () (persistently-connect-to-server))
+    (simple-error () (persistently-connect-to-server))
+    (shutting-down ())))
+
+(defun start-tcp-reader ()
+  (interrupt-thread-by-name "tcp-reader-loop")
+  (bt:make-thread #'tcp-reader-loop :name "tcp-reader-loop"))
 
 ;;; Timekeeping
 (defvar *start-time*)
