@@ -108,8 +108,22 @@
   (print string (usocket:socket-stream *tcp-stream*))
   (force-output (usocket:socket-stream *tcp-stream*)))
 
-(defun connect-to-server (address port)
-  (defparameter *tcp-stream* (usocket:socket-connect address port)))
+(defun persistently-connect-to-server (address port &key max-tries)
+  (if (or (eql nil max-tries) (equal 0 max-tries))
+    (loop
+      (handler-case
+        (progn
+          (format t "Connecting to server...~%")
+          (setf *tcp-stream* (usocket:socket-connect address port)))
+        (connection-refused-error () (sleep 3))))
+    (loop for i from 1 to max-tries
+          do (handler-case
+               (progn
+                 (format t "Connecting to server...~%")
+                 (setf *tcp-stream* (usocket:socket-connect address port)))
+               (connection-refused-error () (sleep 3))))))
+
+
 
 ;;; Message/command reader
 
@@ -254,7 +268,7 @@
   (cffi::load-foreign-library "WinLockDll.dll")
   (set-config (read-config-from-file "config"))
 
-  (connect-to-server *server-address* *server-port*)
+  (persistently-connect-to-server *server-address* *server-port*)
 
   (loop while (not (eql *status* 'quit))
     do (read-and-process-message))
