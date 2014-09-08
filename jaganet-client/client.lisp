@@ -211,11 +211,15 @@
 (defvar *total-cost* 0)
 (defvar *cost-per-hour* 10)
 (defvar *minimum-cost* nil)
-(defun get-total-cost (minutes cost-per-hour &key minimum-cost)
-  (let ((cost (* (/ cost-per-hour 60) minutes)))
-    (if (and minimum-cost (< cost minimum-cost))
-      minimum-cost
-      cost)))
+(defun get-total-cost (&key minutes)
+  (let* ((minutes-to-calculate (if (not (eql minutes nil))
+                                 minutes
+                                 (progn (format t "afdsf")
+                                 (/ (get-seconds-used) 60))))
+         (cost (* (/ *cost-per-hour* 60) minutes-to-calculate)))
+    (if (and *minimum-cost* (< cost *minimum-cost*))
+      (coerce *minimum-cost* 'float)
+      (coerce cost 'float))))
 
 ;;; GUI
 
@@ -278,19 +282,14 @@
             (setf (text cost-text)
                   (with-output-to-string (stream)
                     (format stream "~$" (get-total-cost
-                                          *minutes-allowed*
-                                          *cost-per-hour*
-                                          :minimum-cost *minimum-cost*))))))
+                                          :minutes *minutes-allowed*))))))
         (if (eql *status* 'open-time)
           (progn
             (setf (text status-text) "Open time")
             (setf (text time-text) (format-time (get-seconds-used)))
             (setf (text cost-text)
                   (with-output-to-string (stream)
-                    (format stream "~$" (get-total-cost
-                                          (/ (get-seconds-used) 60)
-                                          *cost-per-hour*
-                                          :minimum-cost *minimum-cost*)))))))
+                    (format stream "~$" (get-total-cost)))))))
       (sleep 1))
     (shutting-down () )))
 
