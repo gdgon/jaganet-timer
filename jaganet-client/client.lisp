@@ -191,7 +191,7 @@
     (progn
       (loop while (>= (- (* 60 *minutes-allowed*) (get-seconds-used))
                    0)
-            do (sleep (* 60 *minutes-allowed*)))
+            do (sleep 1))
       (stop-session))
     (shutting-down () )))
 
