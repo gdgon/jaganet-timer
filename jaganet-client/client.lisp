@@ -48,11 +48,10 @@
 
 (defun lock-screen ()
   (format t "Locking screen.~&")
-  ;(bt:make-thread
-    ;(lambda ()
-      ;(loop while (eql *status* 'stopped)
-        ;do (process-desktop "lockScreen" "C:/windows/system32/calc.exe")))))
-        )
+  (bt:make-thread
+    (lambda ()
+      (loop while (eql *status* 'stopped)
+        do (process-desktop "lockScreen" "C:/windows/system32/calc.exe")))))
 
 (defun start-session (session-type)
   (setf *start-time* (get-universal-time)
