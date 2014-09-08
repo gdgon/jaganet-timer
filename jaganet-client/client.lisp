@@ -175,11 +175,16 @@
        total-seconds-paused)))
 
 (defun format-time (seconds)
+  (if (< seconds 0)
+    (setf seconds 0))
   (multiple-value-bind
-    (second minute hour date month year day-of-week dts-p tz)
-    (decode-universal-time seconds)
-   (with-output-to-string (stream)
-      (format stream "~2,'0d:~2,'0d:~2,'0d" hour minute second))))
+    (whole-number decimal)
+    (truncate seconds)
+    (multiple-value-bind
+      (second minute hour date month year day-of-week dts-p tz)
+      (decode-universal-time whole-number)
+      (with-output-to-string (stream)
+        (format stream "~2,'0d:~2,'0d:~2,'0d" hour minute second)))))
 
 (defun time-end-wait ()
   (handler-case
