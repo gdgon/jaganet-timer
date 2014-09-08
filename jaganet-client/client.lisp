@@ -67,8 +67,8 @@
     :name "screen-lock"))
 
 (defun start-session (session-type)
-  (setf *start-time* (get-universal-time)
-        *status* session-type))
+  (setf *status* session-type)
+  (start-timer))
 
 ;;; Client commands
 
