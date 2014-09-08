@@ -8,7 +8,6 @@
   :depends-on (:ltk :cffi :lisp-unit :usocket :bordeaux-threads)
   :components ((:file "package")
                (:file "winlock")
-               (:file "network")
-               (:file "client" :depends-on ("winlock" "network"))
+               (:file "client" :depends-on ("winlock"))
                (:file "tests" :depends-on ("client"))))
 
