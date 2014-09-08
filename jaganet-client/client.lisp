@@ -107,31 +107,31 @@
 (defvar *start-time*)
 ;;*end-time*
 (defvar *seconds-paused* 0)
-(defvar *last-pause-time*)
+(defvar *last-time-freeze*)
 (defvar *status-before-pause*)
 
 (defun start-timer ()
   (setf *start-time* (get-universal-time)
         *minutes-allowed** 0
-        *last-pause-time* nil
+        *last-time-freeze* nil
         *seconds-paused* 0))
 
 (defun pause-timer ()
   (unless (or (eql *status* 'paused) (eql *status 'stopped))
     (setf *status-before-pause* *status*)
     (setf *status* 'paused)
-    (setf *last-pause-time* (get-universal-time))))
+    (setf *last-time-freeze* (get-universal-time))))
 
 (defun unpause-timer ()
   (when (eql *status* 'paused)
     (setf *status* *status-before-pause*)
     (setf *seconds-paused* (+ *seconds-paused*
-                              (- (get-universal-time) *last-pause-time*)))))
+                              (- (get-universal-time) *last-time-freeze*)))))
 
 (defun get-seconds-used ()
   (let ((total-seconds-paused
           (if (or (eql *status* 'paused) (eql *status* 'stopped))
-            (+ *seconds-paused* (- (get-universal-time) *last-pause-time*))
+            (+ *seconds-paused* (- (get-universal-time) *last-time-freeze*))
             *seconds-paused*)))
     (- (- (get-universal-time) *start-time*)
        total-seconds-paused)))
