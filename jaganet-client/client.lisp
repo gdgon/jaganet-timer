@@ -97,19 +97,19 @@
 ;;; Network
 ;; Copied from https://github.com/ciaranbradley/land-of-lisp-chap-12-usocket
 
-(defvar *stream*)
+(defvar *tcp-stream* nil)
 
 (defun stream-read ()
   "Reads from a usocket connected stream"
-  (read (usocket:socket-stream *stream*)))
+  (read (usocket:socket-stream *tcp-stream*)))
 
 (defun stream-print (string)
   "Prints to a usocket connected stream"
-  (print string (usocket:socket-stream *stream*))
-  (force-output (usocket:socket-stream *stream*)))
+  (print string (usocket:socket-stream *tcp-stream*))
+  (force-output (usocket:socket-stream *tcp-stream*)))
 
 (defun network-setup (address port)
-  (defparameter *stream* (usocket:socket-connect address port)))
+  (defparameter *tcp-stream* (usocket:socket-connect address port)))
 
 ;;; Message/command reader
 
