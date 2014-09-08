@@ -109,7 +109,7 @@
     (setf *seconds-paused* (+ *seconds-paused*
                               (- (get-universal-time) *last-pause-time*)))))
 
-(defun get-used-seconds ()
+(defun get-seconds-used ()
   (let ((total-seconds-paused
           (if (eql *status* 'paused)
             (+ *seconds-paused* (- (get-universal-time) *last-pause-time*))
