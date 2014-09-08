@@ -185,18 +185,20 @@
       (pack logout-button))
 
 (defun update-client-window ()
-  (loop
-    (unless (eql *status* 'stopped)
-      (progn
-        (setf (text time-text)
-              (format-time (get-seconds-used)))
-        (setf (text cost-text)
-              (with-output-to-string (stream)
-                (format stream "~$" (get-total-cost
-                                      (/ (get-seconds-used) 60)
-                                      *default-cost-per-hour*
-                                      :minimum-cost *default-minimum-cost*))))))
-    (sleep 1)))
+  (handler-case
+    (loop
+      (unless (eql *status* 'stopped)
+        (progn
+          (setf (text time-text)
+                (format-time (get-seconds-used)))
+          (setf (text cost-text)
+                (with-output-to-string (stream)
+                  (format stream "~$" (get-total-cost
+                                        (/ (get-seconds-used) 60)
+                                        *cost-per-hour*
+                                        :minimum-cost *minimum-cost*))))))
+      (sleep 1))
+    (shutting-down () )))
 
 (defun stop-client-window ()
   (handler-case (exit-wish)
