@@ -7,7 +7,7 @@
 
 ;;; "jaganet-timer" goes here. Hacks and glory await!
 
-(defvar *time-remaining* 0)
+(defvar *minutes-allowed** 0)
 (defvar *start-time*)
 (defvar *end-time*)
 (defvar *status* 'stopped)
@@ -78,7 +78,7 @@
       (when (eql *status* 'stopped)
         (start-session 'limited-time))
       (defparameter *status* 'limited-time)
-      (defparameter *time-remaining* (+ *time-remaining* minutes))
+      (defparameter *minutes-allowed** (+ *minutes-allowed** minutes))
       (format t "Added ~a minutes." minutes))
     (error 'type-error :datum minutes :expected-type 'integer)))
 
@@ -107,6 +107,7 @@
 
 (defun start-timer ()
   (setf *start-time* (get-universal-time)
+        *minutes-allowed** 0
         *last-pause-time* nil
         *seconds-paused* 0))
 
