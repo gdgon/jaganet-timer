@@ -4,7 +4,7 @@
   :serial t
   :description "Jaganet-timer client"
   :author "Gerry Gonzaga <g@gdgon.com>"
-  :license "Specify license here"
+  :license "BSD"
   :depends-on (:ltk :cffi :lisp-unit :usocket :bordeaux-threads)
   :components ((:file "package")
                (:file "winlock")
