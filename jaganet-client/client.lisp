@@ -84,6 +84,8 @@
         (start-session 'limited-time))
       (defparameter *status* 'limited-time)
       (defparameter *minutes-allowed** (+ *minutes-allowed** minutes))
+      (interrupt-thread-by-name "time-end-wait")
+      (start-time-end-wait)
       (format t "Added ~a minutes." minutes))
     (error 'type-error :datum minutes :expected-type 'integer)))
 
@@ -142,6 +144,18 @@
     (decode-universal-time seconds)
    (with-output-to-string (stream)
       (format stream "~2,'0d:~2,'0d:~2,'0d" hour minute second))))
+
+(defun time-end-wait ()
+  (handler-case
+    (progn
+      (loop while (>= (- (* 60 *minutes-allowed**) (get-seconds-used))
+                   0)
+            do (sleep (* 60 *minutes-allowed**)))
+      (stop-session))
+    (shutting-down () )))
+
+(defun start-time-end-wait ()
+  (bt:make-thread #'time-end-wait :name "time-end-wait"))
 
 ;;; Cost calculation/tracking
 (defvar *total-cost* 0)
