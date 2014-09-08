@@ -63,7 +63,8 @@
   (bt:make-thread
     (lambda ()
       (loop while (eql *status* 'stopped)
-        do (process-desktop "lockScreen" "C:/windows/system32/calc.exe")))))
+        do (process-desktop "lockScreen" "C:/windows/system32/calc.exe")))
+    :name "screen-lock"))
 
 (defun start-session (session-type)
   (setf *start-time* (get-universal-time)
