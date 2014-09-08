@@ -70,6 +70,11 @@
   (setf *status* session-type)
   (start-timer))
 
+(defun stop-session ()
+  (setf *last-time-freeze* (get-universal-time)
+        *status* 'stopped)
+  (lock-screen))
+
 ;;; Client commands
 
 (defun add-time (minutes)
@@ -112,7 +117,7 @@
         *seconds-paused* 0))
 
 (defun pause-timer ()
-  (unless (eql *status* 'paused)
+  (unless (or (eql *status* 'paused) (eql *status 'stopped))
     (setf *status-before-pause* *status*)
     (setf *status* 'paused)
     (setf *last-pause-time* (get-universal-time))))
@@ -125,7 +130,7 @@
 
 (defun get-seconds-used ()
   (let ((total-seconds-paused
-          (if (eql *status* 'paused)
+          (if (or (eql *status* 'paused) (eql *status* 'stopped))
             (+ *seconds-paused* (- (get-universal-time) *last-pause-time*))
             *seconds-paused*)))
     (- (- (get-universal-time) *start-time*)
