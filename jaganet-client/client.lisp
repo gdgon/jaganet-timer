@@ -108,22 +108,13 @@
   (print string (usocket:socket-stream *tcp-stream*))
   (force-output (usocket:socket-stream *tcp-stream*)))
 
-(defun persistently-connect-to-server (address port &key max-tries)
-  (if (or (eql nil max-tries) (equal 0 max-tries))
-    (loop
-      (handler-case
-        (progn
-          (format t "Connecting to server...~%")
-          (setf *tcp-stream* (usocket:socket-connect address port)))
-        (connection-refused-error () (sleep 3))))
-    (loop for i from 1 to max-tries
-          do (handler-case
-               (progn
-                 (format t "Connecting to server...~%")
-                 (setf *tcp-stream* (usocket:socket-connect address port)))
-               (connection-refused-error () (sleep 3))))))
-
-
+(defun persistently-connect-to-server ()
+  (handler-case
+    (progn
+      (format t "Connecting to server...~%")
+      (setf *tcp-stream* (usocket:socket-connect
+                           *server-address* *server-port*)))
+    (connection-refused-error () (persistently-connect-to-server))))
 
 ;;; Message/command reader
 
