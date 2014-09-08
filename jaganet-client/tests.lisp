@@ -18,12 +18,6 @@
   (lisp-unit:assert-error 'type-error (add-time "two"))
   (lisp-unit:assert-error 'type-error (add-time '(2))))
 
-(lisp-unit:define-test test-stop
-  (defparameter *status* 'bla)
-  (stop)
-  (lisp-unit:assert-equal 'stopped *status*)
-  (defparameter *status* 'new))
-
 (lisp-unit:define-test test-process-message
   (defparameter *time-remaining* 0)
   (defparameter *status* 'bla)
