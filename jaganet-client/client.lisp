@@ -131,9 +131,10 @@
 (defun tcp-reader-loop ()
   (handler-case
     (loop
-      (process-message (stream-read)))
-    (end-of-file () (persistently-connect-to-server))
-    (simple-error () (persistently-connect-to-server))
+      (handler-case
+        (process-message (stream-read))
+        (end-of-file () (persistently-connect-to-server))
+        (simple-error () (persistently-connect-to-server))))
     (shutting-down ())))
 
 (defun start-tcp-reader ()
