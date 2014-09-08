@@ -117,6 +117,13 @@
     (- (- (get-universal-time) *start-time*)
        total-seconds-paused)))
 
+(defun format-time (seconds)
+  (multiple-value-bind
+    (second minute hour date month year day-of-week dts-p tz)
+    (decode-universal-time seconds)
+   (with-output-to-string (stream)
+      (format stream "~2,'0d:~2,'0d:~2,'0d" hour minute second))))
+
 ;;; Cost calculation/tracking
 (defvar *total-cost* 0)
 (defvar *default-cost-per-hour* 10)
