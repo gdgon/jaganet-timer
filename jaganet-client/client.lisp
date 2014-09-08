@@ -93,7 +93,9 @@
 (defvar *status-before-pause*)
 
 (defun start-timer ()
-  (setf *start-time* (get-universal-time)))
+  (setf *start-time* (get-universal-time)
+        *last-pause-time* nil
+        *seconds-paused* 0))
 
 (defun pause-timer ()
   (unless (eql *status* 'paused)
