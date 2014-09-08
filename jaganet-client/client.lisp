@@ -120,6 +120,7 @@
 ;;; Cost calculation/tracking
 (defvar *total-cost* 0)
 (defvar *default-cost-per-hour* 10)
+(defvar *default-minimum-cost* nil)
 (defun get-total-cost (minutes cost-per-hour &key minimum-cost)
   (let ((cost (* (/ cost-per-hour 60) minutes)))
     (if (and minimum-cost (< cost minimum-cost))
