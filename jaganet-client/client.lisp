@@ -89,6 +89,14 @@
       (format t "Added ~a minutes." minutes))
     (error 'type-error :datum minutes :expected-type 'integer)))
 
+(defun open-time ()
+  (if (eql *status* 'stopped)
+    (start-session 'open-time))
+  (defparameter *status* 'open-time)
+  (defparameter *minutes-allowed* 0)
+  (interrupt-thread-by-name "time-end-wait")
+  (format t "Open time."))
+
 (defun stop ()
   (defparameter *status* 'stopped)
   (format t "Stopped.~&")
@@ -123,6 +131,7 @@
     (let ((msg-type (car message))
           (msg-param (cadr message)))
       (cond ((eql msg-type :add-time) (add-time msg-param))
+            ((eql msg-type :open-time) (open-time))
             ((eql msg-type :stop) (stop))))
     (type-error () "Ignore messages that aren't lists."
                 (format t "Invalid message received: ~a~%"
@@ -275,7 +284,6 @@
         (if (eql *status* 'open-time)
           (progn
             (setf (text status-text) "Open time")
-            (setf (text time-label) "Time used")
             (setf (text time-text) (format-time (get-seconds-used)))
             (setf (text cost-text)
                   (with-output-to-string (stream)
