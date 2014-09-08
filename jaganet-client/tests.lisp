@@ -60,3 +60,10 @@
   (lisp-unit:assert-equal 'stopped *status*)
   (defparameter *status* 'new))
 
+(lisp-unit:define-test test-get-total-costs
+  (lisp-unit:assert-equal 10 (get-total-cost 60 10))
+  (lisp-unit:assert-equal 5 (get-total-cost 30 10))
+  (lisp-unit:assert-equal 0 (get-total-cost 0 20))
+  (lisp-unit:assert-equal 5 (get-total-cost 15 20))
+  (lisp-unit:assert-equal 5 (get-total-cost 10 10 :minimum-cost 5))
+  (lisp-unit:assert-equal 5 (get-total-cost 0 10 :minimum-cost 5)))
