@@ -162,7 +162,12 @@
                                  (format stream "~$" (/ (get-used-seconds) 6))))))
     (sleep 1)))
 
+(defun stop-client-window ()
+  (handler-case (exit-wish)
+    (control-error () nil)))
+
 (defun start-client-window ()
+  (stop-client-window)
   (client-window)
   (bt:make-thread #'update-client-window :name "update-client-window"))
 
