@@ -206,6 +206,7 @@
 
 (defun start-client-window ()
   (stop-client-window)
+  (interrupt-thread-by-name "update-client-window")
   (client-window)
   (bt:make-thread #'update-client-window :name "update-client-window"))
 
