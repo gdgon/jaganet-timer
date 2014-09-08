@@ -15,9 +15,21 @@
 (defvar *server-port* 4321)
 (defvar *config-file* "config")
 
+(defun interrupt-thread-by-name (thread-name)
+  (handler-case (bt:interrupt-thread (find thread-name
+                                           (bt:all-threads)
+                                           :test #'string-equal
+                                           :key #'bt:thread-name)
+                                     #'(lambda ()
+                                         (signal 'shutting-down)))
+    (type-error () nil)))
+
 (defun prompt-to-list (prompt-message)
   (format t prompt-message)
   (multiple-value-list (read)))
+
+(define-condition shutting-down (error)
+  ())
 
 (define-condition cannot-read-config-file-error (error)
   ((file :initarg :text :accessor text)))
