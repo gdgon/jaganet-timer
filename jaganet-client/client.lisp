@@ -216,19 +216,24 @@
     (defparameter f
              (make-instance 'ltk:frame
                              :master nil))
+    (defparameter status-label
+             (make-instance 'ltk:labelframe
+                            :master f
+                            :text "Status"))
+    (defparameter status-text
+             (make-instance 'ltk:label
+                            :master status-label))
     (defparameter time-label
              (make-instance 'ltk:labelframe
                             :master f
-                            :width 10
-                            :text "Time remaining:"))
+                            :text "Time"))
     (defparameter time-text
              (make-instance 'ltk:label
                             :master time-label))
     (defparameter cost-label
              (make-instance 'ltk:labelframe
                             :master f
-                            :width 10
-                            :text "Total cost:"))
+                            :text "Total cost"))
     (defparameter cost-text
              (make-instance 'ltk:label
                             :master cost-label))
@@ -240,6 +245,8 @@
     (on-close *tk* (lambda () (format t "Closed")))
 
       (pack f)
+      (pack status-label)
+      (pack status-text)
       (pack time-label)
       (pack time-text)
       (pack cost-label)
@@ -249,16 +256,33 @@
 (defun update-client-window ()
   (handler-case
     (loop
-      (unless (eql *status* 'stopped)
-        (progn
-          (setf (text time-text)
-                (format-time (get-seconds-used)))
-          (setf (text cost-text)
-                (with-output-to-string (stream)
-                  (format stream "~$" (get-total-cost
-                                        (/ (get-seconds-used) 60)
-                                        *cost-per-hour*
-                                        :minimum-cost *minimum-cost*))))))
+      (progn
+        (if (eql *status* 'stopped)
+          (setf (text status-text) "Stopped"))
+        (if (eql *status* 'paused)
+          (setf (text status-text) "Paused"))
+        (if (eql *status* 'limited-time)
+          (progn
+            (setf (text status-text) "Limited time")
+            (setf (text time-text) (format-time (- (* *minutes-allowed* 60)
+                                                   (get-seconds-used))))
+            (setf (text cost-text)
+                  (with-output-to-string (stream)
+                    (format stream "~$" (get-total-cost
+                                          *minutes-allowed*
+                                          *cost-per-hour*
+                                          :minimum-cost *minimum-cost*))))))
+        (if (eql *status* 'open-time)
+          (progn
+            (setf (text status-text) "Open time")
+            (setf (text time-label) "Time used")
+            (setf (text time-text) (format-time (get-seconds-used)))
+            (setf (text cost-text)
+                  (with-output-to-string (stream)
+                    (format stream "~$" (get-total-cost
+                                          (/ (get-seconds-used) 60)
+                                          *cost-per-hour*
+                                          :minimum-cost *minimum-cost*)))))))
       (sleep 1))
     (shutting-down () )))
 
