@@ -164,7 +164,7 @@
         *seconds-paused* 0))
 
 (defun pause-timer ()
-  (unless (or (eql *status* 'paused) (eql *status 'stopped))
+  (unless (or (eql *status* 'paused) (eql *status* 'stopped))
     (setf *status-before-pause* *status*)
     (setf *status* 'paused)
     (setf *last-time-freeze* (get-universal-time))))
