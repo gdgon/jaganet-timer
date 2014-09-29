@@ -62,8 +62,8 @@
   (format t "Locking screen.~&")
   (bt:make-thread
     (lambda ()
-      (loop while (eql *status* 'stopped)
-        do (process-desktop "lockScreen" "C:/windows/system32/calc.exe")))
+      (loop while (eql *status* :stopped)
+        do (progn #+mswindows(process-desktop "lockScreen" "C:/windows/system32/calc.exe"))))
     :name "screen-lock"))
 
 (defun start-session (session-type)
@@ -128,11 +128,11 @@
 
 (defun process-message (message)
   (handler-case
-    (let ((msg-type (car message))
-          (msg-param (cadr message)))
-      (cond ((eql msg-type :add-time) (add-time msg-param))
-            ((eql msg-type :open-time) (open-time))
-            ((eql msg-type :stop) (stop))))
+      (let ((msg-type (car message))
+	    (msg-param (cadr message)))
+	(cond ((eql msg-type :add-time) (add-time msg-param))
+	      ((eql msg-type :open-time) (open-time))
+	      ((eql msg-type :stop) (stop))))
     (type-error () "Ignore messages that aren't lists."
                 (format t "Invalid message received: ~a~%"
                         (write-to-string message)))))
@@ -306,8 +306,10 @@
 ;;;
 
 (defun main ()
-  (cffi::load-foreign-library "WinLockDll.dll")
+  #+mswindows(cffi::load-foreign-library "WinLockDll.dll")
   (set-config (read-config-from-file "config"))
+
+  (start-network-monitor)
 
   (start-tcp-reader)
 
