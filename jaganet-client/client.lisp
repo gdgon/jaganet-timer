@@ -8,9 +8,9 @@
 ;;; "jaganet-timer" goes here. Hacks and glory await!
 
 (defvar *minutes-allowed* 0)
-(defvar *start-time*)
-(defvar *end-time*)
-(defvar *status* 'stopped)
+(defvar *start-time* 0)
+(defvar *end-time* 0)
+(defvar *status* :stopped)
 (defvar *server-address* "127.0.0.1")
 (defvar *server-port* 4321)
 (defvar *config-file* "config")
@@ -72,7 +72,7 @@
 
 (defun stop-session ()
   (setf *last-time-freeze* (get-universal-time)
-        *status* 'stopped)
+        *status* :stopped)
   (lock-screen))
 
 ;;; Client commands
@@ -80,9 +80,9 @@
 (defun add-time (minutes)
   (if (numberp minutes)
     (progn
-      (when (eql *status* 'stopped)
-        (start-session 'limited-time))
-      (defparameter *status* 'limited-time)
+      (when (eql *status* :stopped)
+        (start-session :limited-time))
+      (defparameter *status* :limited-time)
       (defparameter *minutes-allowed* (+ *minutes-allowed* minutes))
       (interrupt-thread-by-name "time-end-wait")
       (start-time-end-wait)
@@ -90,15 +90,15 @@
     (error 'type-error :datum minutes :expected-type 'integer)))
 
 (defun open-time ()
-  (if (eql *status* 'stopped)
-    (start-session 'open-time))
-  (defparameter *status* 'open-time)
+  (if (eql *status* :stopped)
+    (start-session :open-time))
+  (defparameter *status* :open-time)
   (defparameter *minutes-allowed* 0)
   (interrupt-thread-by-name "time-end-wait")
   (format t "Open time."))
 
 (defun stop ()
-  (defparameter *status* 'stopped)
+  (defparameter *status* :stopped)
   (format t "Stopped.~&")
   (lock-screen))
 
@@ -151,11 +151,11 @@
   (bt:make-thread #'tcp-reader-loop :name "tcp-reader-loop"))
 
 ;;; Timekeeping
-(defvar *start-time*)
+(defvar start-time 0)
 ;;*end-time*
 (defvar *seconds-paused* 0)
-(defvar *last-time-freeze*)
-(defvar *status-before-pause*)
+(defvar *last-time-freeze* 0)
+(defvar *status-before-pause* nil)
 
 (defun start-timer ()
   (setf *start-time* (get-universal-time)
@@ -164,20 +164,20 @@
         *seconds-paused* 0))
 
 (defun pause-timer ()
-  (unless (or (eql *status* 'paused) (eql *status* 'stopped))
+  (unless (or (eql *status* :paused) (eql *status* :stopped))
     (setf *status-before-pause* *status*)
-    (setf *status* 'paused)
+    (setf *status* :paused)
     (setf *last-time-freeze* (get-universal-time))))
 
 (defun unpause-timer ()
-  (when (eql *status* 'paused)
+  (when (eql *status* :paused)
     (setf *status* *status-before-pause*)
     (setf *seconds-paused* (+ *seconds-paused*
                               (- (get-universal-time) *last-time-freeze*)))))
 
 (defun get-seconds-used ()
   (let ((total-seconds-paused
-          (if (or (eql *status* 'paused) (eql *status* 'stopped))
+          (if (or (eql *status* :paused) (eql *status* :stopped))
             (+ *seconds-paused* (- (get-universal-time) *last-time-freeze*))
             *seconds-paused*)))
     (- (- (get-universal-time) *start-time*)
@@ -270,11 +270,11 @@
   (handler-case
     (loop
       (progn
-        (if (eql *status* 'stopped)
+        (if (eql *status* :stopped)
           (setf (text status-text) "Stopped"))
-        (if (eql *status* 'paused)
+        (if (eql *status* :paused)
           (setf (text status-text) "Paused"))
-        (if (eql *status* 'limited-time)
+        (if (eql *status* :limited-time)
           (progn
             (setf (text status-text) "Limited time")
             (setf (text time-text) (format-time (- (* *minutes-allowed* 60)
@@ -283,7 +283,7 @@
                   (with-output-to-string (stream)
                     (format stream "~$" (get-total-cost
                                           :minutes *minutes-allowed*))))))
-        (if (eql *status* 'open-time)
+        (if (eql *status* :open-time)
           (progn
             (setf (text status-text) "Open time")
             (setf (text time-text) (format-time (get-seconds-used)))
