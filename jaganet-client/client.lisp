@@ -116,13 +116,13 @@
   (print string (usocket:socket-stream *tcp-stream*))
   (force-output (usocket:socket-stream *tcp-stream*)))
 
-(defun persistently-connect-to-server ()
+(defun try-to-connect-to-server ()
+  (format t "Connecting to server...~%")
   (handler-case
-    (progn
-      (format t "Connecting to server...~%")
       (setf *tcp-stream* (usocket:socket-connect
-                           *server-address* *server-port*)))
-    (connection-refused-error () (persistently-connect-to-server))))
+			  *server-address* *server-port*))
+  (connection-refused-error () nil))
+  (sleep 1))
 
 ;;; Message/command reader
 
@@ -142,8 +142,8 @@
     (loop
       (handler-case
         (process-message (stream-read))
-        (end-of-file () (persistently-connect-to-server))
-        (simple-error () (persistently-connect-to-server))))
+        (end-of-file () (try-to-connect-to-server))
+        (simple-error () (try-to-connect-to-server))))
     (shutting-down ())))
 
 (defun start-tcp-reader ()
