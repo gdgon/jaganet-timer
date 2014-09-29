@@ -106,6 +106,7 @@
 ;; Copied from https://github.com/ciaranbradley/land-of-lisp-chap-12-usocket
 
 (defvar *tcp-stream* nil)
+(defvar *connected-to-server* nil)
 
 (defun stream-read ()
   "Reads from a usocket connected stream"
@@ -119,10 +120,46 @@
 (defun try-to-connect-to-server ()
   (format t "Connecting to server...~%")
   (handler-case
-      (setf *tcp-stream* (usocket:socket-connect
-			  *server-address* *server-port*))
-  (connection-refused-error () nil))
-  (sleep 1))
+      (progn
+	(setf *tcp-stream* nil)
+	(setf *tcp-stream* (usocket:socket-connect
+			    *server-address* *server-port*))
+	(if *tcp-stream*
+	    (setf *connected-to-server* t)))
+    (connection-refused-error () (setf *connected-to-server* nil))))
+
+(defun network-monitor ()
+  "Checks if *connected-to-server* is t. Invokes try-to-connect-to-server if it isn't. Also invokes send-session-state if currently connected."
+  (handler-case
+      (loop
+	 (if *connected-to-server*
+	     (send-session-state)
+	     (loop
+		unless *connected-to-server*
+		do
+		  (try-to-connect-to-server)
+		  (sleep 1)
+		  (if *connected-to-server*
+		      (return))))
+	 (sleep 5))
+    (shutting-down ())))
+
+(defun get-session-state ()
+   `(:status ,*status*
+      :minutes-allowed ,*minutes-allowed*
+      :start-time ,*start-time*
+      :last-time-freeze ,*last-time-freeze*
+      :seconds-paused ,*seconds-paused*))
+
+ (defun send-session-state ()
+   (handler-case
+       (stream-print (get-session-state))
+     (end-of-file () (setf *connected-to-server* nil))
+     (simple-stream-error () (setf *connected-to-server* nil))))
+
+(defun start-network-monitor ()
+  (interrupt-thread-by-name "network-monitor")
+  (bt:make-thread #'network-monitor :name "network-monitor"))
 
 ;;; Message/command reader
 
@@ -140,10 +177,12 @@
 (defun tcp-reader-loop ()
   (handler-case
     (loop
-      (handler-case
-        (process-message (stream-read))
-        (end-of-file () (try-to-connect-to-server))
-        (simple-error () (try-to-connect-to-server))))
+       (if *connected-to-server*
+	   (handler-case
+	       (process-message (stream-read))
+	     (end-of-file () (setf *connected-to-server* nil))
+	     (simple-stream-error () (setf *connected-to-server* nil))))
+       (sleep 1))
     (shutting-down ())))
 
 (defun start-tcp-reader ()
