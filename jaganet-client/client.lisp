@@ -294,12 +294,12 @@
     (shutting-down () )))
 
 (defun stop-client-window ()
+  (interrupt-thread-by-name "update-client-window")
   (handler-case (exit-wish)
     (control-error () nil)))
 
 (defun start-client-window ()
   (stop-client-window)
-  (interrupt-thread-by-name "update-client-window")
   (client-window)
   (bt:make-thread #'update-client-window :name "update-client-window"))
 
