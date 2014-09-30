@@ -5,8 +5,7 @@
   :description "Describe jaganet-timer here"
   :author "Gerry Gonzaga <g@gdgon.com>"
   :license "Specify license here"
-  :depends-on (:ltk :lisp-unit :usocket)
+  :depends-on (:ltk :lisp-unit :usocket :bordeaux-threads)
   :components ((:file "package")
-               (:file "network")
-               (:file "server" :depends-on ("network"))
+               (:file "server")
                (:file "tests" :depends-on ("server"))))

@@ -6,7 +6,7 @@
 
 (defvar *stream*)
 
-(defun stream-read ()
+(defun stream-read (stream)
   "Reads from a usocket connected stream"
   (read (usocket:socket-stream stream)))
 
@@ -16,7 +16,7 @@
   (force-output (usocket:socket-stream *stream*)))
 
 (defun network-setup (address port)
-  (defparameter *socket* (usocket:socket-listen address port)))
+  (defparameter *socket* (usocket:socket-listen address port :reuseaddress t :reuse-address t)))
 
 (defun network-listen ()
   (defparameter *stream* (usocket:socket-accept *socket*)))
