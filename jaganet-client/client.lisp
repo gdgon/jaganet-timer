@@ -195,7 +195,7 @@
     (loop
        (if *connected-to-server*
 	   (handler-case
-	       (process-message (stream-read))
+              (process-message (stream-read))
 	     (end-of-file () (setf *connected-to-server* nil))
 	     (simple-stream-error () (setf *connected-to-server* nil))))
        (sleep 1))
@@ -363,9 +363,6 @@
 (defun main ()
   #+mswindows(cffi::load-foreign-library "WinLockDll.dll")
   (set-config (read-config-from-file "config"))
-
   (start-network-monitor)
-
-  (start-tcp-reader)
-
+  (start-tcp-reader-loop)
   (start-client-window))
