@@ -14,6 +14,7 @@
 (defvar *server-address* "127.0.0.1")
 (defvar *server-port* 4321)
 (defvar *config-file* "config")
+(defvar *session-id* nil)
 
 (defun interrupt-thread-by-name (thread-name)
   (handler-case (bt:interrupt-thread (find thread-name
