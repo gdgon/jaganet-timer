@@ -364,5 +364,5 @@
   #+mswindows(cffi::load-foreign-library "WinLockDll.dll")
   (set-config (read-config-from-file "config"))
   (start-network-monitor)
-  (start-tcp-reader-loop)
+  (start-tcp-reader)
   (start-client-window))
