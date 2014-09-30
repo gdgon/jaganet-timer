@@ -126,7 +126,9 @@
 	(setf *tcp-stream* (usocket:socket-connect
 			    *server-address* *server-port*))
 	(if *tcp-stream*
-	    (setf *connected-to-server* t)))
+	    (progn
+	      (stream-print `(:new-connection ,(get-client-data)))
+	      (setf *connected-to-server* t))))
     (connection-refused-error () (setf *connected-to-server* nil))))
 
 (defun network-monitor ()
@@ -134,29 +136,42 @@
   (handler-case
       (loop
 	 (if *connected-to-server*
-	     (send-session-state)
+	       (send-status-update)
 	     (loop
 		unless *connected-to-server*
 		do
 		  (try-to-connect-to-server)
 		  (sleep 1)
 		  (if *connected-to-server*
-		      (return))))
+			(return))))
 	 (sleep 5))
     (shutting-down ())))
 
+(defun ip-byte-array-to-string (ip-byte-array)
+  (let ((ip (map 'list #'write-to-string ip-byte-array)))
+    (concatenate 'string (pop ip) "." (pop ip) "." (pop ip) "." (pop ip))))
+
+(defun get-client-data ()
+  `(:hostname ,(machine-instance)
+    :ip-address ,(or (ignore-errors (usocket:get-local-address *tcp-stream*))
+		     nil)))
+
 (defun get-session-state ()
    `(:status ,*status*
+      :session-id ,*session-id*
       :minutes-allowed ,*minutes-allowed*
       :start-time ,*start-time*
       :last-time-freeze ,*last-time-freeze*
       :seconds-paused ,*seconds-paused*))
 
- (defun send-session-state ()
-   (handler-case
-       (stream-print (get-session-state))
-     (end-of-file () (setf *connected-to-server* nil))
-     (simple-stream-error () (setf *connected-to-server* nil))))
+(defun get-status-data ()
+  `(:client-data ,(get-client-data) :session-data ,(get-session-state)))
+
+(defun send-status-update ()
+  (handler-case
+      (stream-print `(:status-update ,(get-status-data)))
+    (end-of-file () (setf *connected-to-server* nil))
+    (simple-stream-error () (setf *connected-to-server* nil))))
 
 (defun start-network-monitor ()
   (interrupt-thread-by-name "network-monitor")
