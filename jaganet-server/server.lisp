@@ -39,11 +39,14 @@
 	  (let ((hostname (getf new-connection-data :hostname)))
 	    ;; First, register the stream with the host name
 	    (setf (getf *streams* (intern hostname 'jaganet-server)) stream)
+	    ;; Reader loop
 	    (loop
 	       (handler-case
 		   (funcall #'server-message-handler (stream-read stream))
 		 (end-of-file () (return))
-		 (simple-stream-error () (return)))))))))
+		 (simple-stream-error () (return))))
+	    ;; Unregister the stream after it has disconnected
+	    (remf *streams* (intern hostname 'jaganet-server)))))))
 
 (defun start-server ()
   (usocket:socket-server *server-address* *server-port* #'stream-handler nil
