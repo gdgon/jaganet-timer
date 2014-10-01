@@ -5,13 +5,19 @@
 (defvar *clients* (make-hash-table :test #'equalp))
 (defvar *streams* nil)
 
-(defmacro make-client-gui-element (key widget-type text client-gui-row)
+(defmacro make-client-gui-element (key widget-type text client-gui-row &rest extra-arguments)
   `(setf (getf ,client-gui-row ,key)
-	 (make-instance ,widget-type :master client-list-frame :text ,text)))
+	 ,(if extra-arguments
+	      `(make-instance ,widget-type :master client-list-frame :text ,text ,@extra-arguments)
+	      `(make-instance ,widget-type :master client-list-frame :text ,text))))
 
 (defun server-window ()
   "Create the server window."
   (start-wish)
+
+  "Run the ltk mainloop event handler in a separate thread."
+  (bt:make-thread #'ltk:mainloop :name "ltk mainloop")
+
   (wm-title *tk* "Jaganet Server")
   
   ;; Main window frame
@@ -44,12 +50,17 @@
 
   (grid-client-row label-row 0)
 
-
   (pack f)
   (pack client-list-frame)
 )
 
-(defun make-client-row ()
+(defmacro make-button-send-command (message hostname)
+  "Creates a lambda that calls sends-message with a given message and hostname."
+  `(lambda ()
+     (send-message ,message ,hostname)))
+
+(defun make-client-row (hostname)
+  (format t "making client row~%")
   (let ((row '()))
     (make-client-gui-element :hostname  'ltk:label "Hostname" row)
     (make-client-gui-element :ip-address  'ltk:label "IP Address" row)
@@ -61,8 +72,27 @@
     (make-client-gui-element :end-time  'ltk:label "End Time" row)
 
     (make-client-gui-element :limit-time  'ltk:button "Limit Time" row)
-    (make-client-gui-element :open-time  'ltk:button "Open Time" row)
-    (make-client-gui-element :add-time  'ltk:button "Add Time" row)
+
+    (make-client-gui-element :open-time  'ltk:button "Open Time" row
+			     :command (lambda () (send-message '(:open-time) hostname)))
+
+    (make-client-gui-element :add-time  'ltk:button "Add Time" row
+			     :command (lambda ()
+					(let* ((t2 (make-instance 'ltk:toplevel :master nil))
+					       (l2 (make-instance 'ltk:label :master t2 :text "Add minutes"))
+					       (s2 (make-instance 'ltk:spinbox :master t2 :text "30"
+								  :from 0 :to 600 :increment 30))
+					       (b2 (make-instance 'ltk:button :master t2 :text "Ok"
+								  :command
+								  (lambda ()
+								    (send-message `(:add-time ,(parse-integer
+											       (text s2)))
+										  hostname)
+								    (destroy t2)))))
+					  (ltk:pack l2)
+					  (ltk:pack s2)
+					  (ltk:pack b2))))
+
     (make-client-gui-element :reduce-time  'ltk:button "Reduce Time" row)
     (make-client-gui-element :pause-time  'ltk:button "Pause Time" row)
     (make-client-gui-element :suspend  'ltk:button "Suspend" row)
@@ -104,8 +134,20 @@
 
 ;; Networking
 
-;; Copied from https://github.com/ciaranbradley/land-of-lisp-chap-12-usocket
+(defun get-stream (hostname)
+  (getf *streams* (intern hostname 'jaganet-server)))
 
+(defun set-stream (hostname stream)
+  (setf (getf *streams* (intern hostname 'jaganet-server)) stream))
+
+(defun remove-stream (hostname)
+  (remf *streams* (intern hostname 'jaganet-server)))
+
+(defun send-message (message hostname)
+  "Sends a message to the specified host."
+  (stream-print message (get-stream hostname)))
+
+;; Copied from https://github.com/ciaranbradley/land-of-lisp-chap-12-usocket
 (defun stream-read (stream)
   "Reads from a usocket connected stream"
   (read  stream))
@@ -127,7 +169,7 @@
 	(progn
 	  (let ((hostname (getf new-connection-data :hostname)))
 	    ;; First, register the stream with the host name
-	    (setf (getf *streams* (intern hostname 'jaganet-server)) stream)
+	    (set-stream hostname stream)
 	    ;; Reader loop
 	    (loop
 	       (handler-case
@@ -135,7 +177,7 @@
 		 (end-of-file () (return))
 		 (simple-stream-error () (return))))
 	    ;; Unregister the stream after it has disconnected
-	    (remf *streams* (intern hostname 'jaganet-server)))))))
+	    (remove-stream hostname))))))
 
 (defun start-server ()
   "Starts the TCP server."
@@ -178,12 +220,12 @@
     (setf (gethash hostname *clients*) '())
     (setf (getf (gethash hostname *clients*) :client-data) client-data)
     (setf (getf (gethash hostname *clients*) :session-data) session-data)
-    (setf (getf (gethash hostname *clients*) :client-row) (make-client-row))
+    (setf (getf (gethash hostname *clients*) :client-row) (make-client-row hostname))
     (grid-client-row (getf (gethash hostname *clients*) :client-row) 13)
     (update-client-row hostname)))
 
 (defun format-time (seconds)
-  "Given the total number of seconds, returns the hours, minutes, and seconds in hh:mm:ss format."
+  "Given a number of seconds, returns the hours, minutes, and seconds in hh:mm:ss format."
   (let* ((s (mod seconds 60))
 	 (m (truncate (mod (/ seconds 60) 60)))
 	 (h (truncate (/ (/ seconds 60) 60))))
