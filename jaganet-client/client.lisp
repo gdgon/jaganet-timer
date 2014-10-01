@@ -121,7 +121,7 @@
 (defun try-to-connect-to-server ()
   (format t "Connecting to server...~%")
   (handler-case
-      (progn
+      (progn 
 	(setf *tcp-stream* nil)
 	(setf *tcp-stream* (usocket:socket-connect
 			    *server-address* *server-port*))
@@ -136,14 +136,18 @@
   (handler-case
       (loop
 	 (if *connected-to-server*
-	       (send-status-update)
+	     ;; Send status update if connected to server
+	     (send-status-update)
+	     ;; Try to connect. Update the connection status on the client window if successful.
 	     (loop
 		unless *connected-to-server*
 		do
 		  (try-to-connect-to-server)
 		  (sleep 1)
 		  (if *connected-to-server*
-			(return))))
+		      (progn
+			(setf (text connection-status-label) "Connected")
+			(return)))))
 	 (sleep 5))
     (shutting-down ())))
 
@@ -159,9 +163,13 @@
 (defun get-session-state ()
    `(:status ,*status*
       :session-id ,*session-id*
+      :cost ,(if (eq *status* :open-time)
+		 (get-total-cost)
+		 (get-total-cost :minutes *minutes-allowed*))
       :minutes-allowed ,*minutes-allowed*
       :start-time ,*start-time*
       :last-time-freeze ,*last-time-freeze*
+      :seconds-used ,(get-seconds-used)
       :seconds-paused ,*seconds-paused*))
 
 (defun get-status-data ()
@@ -170,8 +178,12 @@
 (defun send-status-update ()
   (handler-case
       (stream-print `(:status-update ,(get-status-data)))
-    (end-of-file () (setf *connected-to-server* nil))
-    (simple-stream-error () (setf *connected-to-server* nil))))
+    (end-of-file () (progn
+		      (setf *connected-to-server* nil)
+		      (setf (text connection-status-label) "Disconnected")))
+    (simple-stream-error () (progn
+			      (setf *connected-to-server* nil)
+			      (setf (text connection-status-label) "Disconnected")))))
 
 (defun start-network-monitor ()
   (interrupt-thread-by-name "network-monitor")
@@ -195,9 +207,14 @@
     (loop
        (if *connected-to-server*
 	   (handler-case
-              (process-message (stream-read))
-	     (end-of-file () (setf *connected-to-server* nil))
-	     (simple-stream-error () (setf *connected-to-server* nil))))
+	       (process-message (stream-read))
+	     (end-of-file () (progn
+			       (setf *connected-to-server* nil)
+			       (setf (text connection-status-label) "Disconnected")
+			       ))
+	     (simple-stream-error () (progn
+				       (setf *connected-to-server* nil)
+				       (setf (text connection-status-label) "Disconnected")))))
        (sleep 1))
     (shutting-down ())))
 
@@ -207,7 +224,6 @@
 
 ;;; Timekeeping
 (defvar start-time 0)
-;;*end-time*
 (defvar *seconds-paused* 0)
 (defvar *last-time-freeze* 0)
 (defvar *status-before-pause* nil)
@@ -284,6 +300,10 @@
     (defparameter f
              (make-instance 'ltk:frame
                              :master nil))
+    (defparameter connection-status-label
+             (make-instance 'ltk:label
+			    :master f
+			    :text "Disconnected"))
     (defparameter status-label
              (make-instance 'ltk:labelframe
                             :master f
