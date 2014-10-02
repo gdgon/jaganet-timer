@@ -255,16 +255,15 @@
        total-seconds-paused)))
 
 (defun format-time (seconds)
-  (if (< seconds 0)
-    (setf seconds 0))
-  (multiple-value-bind
-    (whole-number decimal)
-    (truncate seconds)
-    (multiple-value-bind
-      (second minute hour date month year day-of-week dts-p tz)
-      (decode-universal-time whole-number)
-      (with-output-to-string (stream)
-        (format stream "~2,'0d:~2,'0d:~2,'0d" hour minute second)))))
+  "Given a number of seconds, returns the hours, minutes, and seconds in hh:mm:ss format."
+  (if (> seconds 0)
+      (let* ((s (mod seconds 60))
+	     (m (truncate (mod (/ seconds 60) 60)))
+	     (h (truncate (/ (/ seconds 60) 60))))
+	(with-output-to-string (stream)
+	  (format stream "~2,'0d:~2,'0d:~2,'0d" h m s)))
+      ; If seconds is a negative number, just write all zeros
+      "00:00:00"))
 
 (defun time-end-wait ()
   (handler-case
