@@ -284,13 +284,12 @@
 (defvar *minimum-cost* nil)
 (defun get-total-cost (&key minutes)
   (let* ((minutes-to-calculate (if (not (eql minutes nil))
-                                 minutes
-                                 (progn (format t "afdsf")
-                                 (/ (get-seconds-used) 60))))
+				   minutes
+				   (/ (get-seconds-used) 60)))
          (cost (* (/ *cost-per-hour* 60) minutes-to-calculate)))
     (if (and *minimum-cost* (< cost *minimum-cost*))
-      (coerce *minimum-cost* 'float)
-      (coerce cost 'float))))
+	(coerce *minimum-cost* 'float)
+	(coerce cost 'float))))
 
 ;;; GUI
 
