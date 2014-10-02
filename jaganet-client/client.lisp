@@ -339,6 +339,7 @@
       (pack time-text)
       (pack cost-label)
       (pack cost-text)
+      (pack connection-status-label)
       (pack logout-button))
 
 (defun update-client-window ()
