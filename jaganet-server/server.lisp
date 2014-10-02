@@ -14,10 +14,10 @@
 (defun server-window ()
   "Create the server window."
   (start-wish)
-
+  (sleep 1)
   "Run the ltk mainloop event handler in a separate thread."
   (bt:make-thread #'ltk:mainloop :name "ltk mainloop")
-
+  (sleep 1)
   (wm-title *tk* "Jaganet Server")
   
   ;; Main window frame
