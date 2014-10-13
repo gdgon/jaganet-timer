@@ -7,14 +7,23 @@
 
 ;;; "jaganet-timer" goes here. Hacks and glory await!
 
-(defvar *minutes-allowed* 0)
-(defvar *start-time* 0)
-(defvar *end-time* 0)
-(defvar *status* :stopped)
 (defvar *server-address* "127.0.0.1")
 (defvar *server-port* 4321)
 (defvar *config-file* "config")
+(defvar *hostname* (machine-instance))
+
+;; Session data
+(defvar *status* :stopped)
 (defvar *session-id* nil)
+(defvar *minutes-allowed* 0)
+(defvar *start-time* 0)
+(defvar *last-time-freeze* 0)
+(defvar *seconds-paused* 0)
+(defvar *status-before-pause* nil)
+
+;; Cost
+(defvar *cost-per-hour* 10)
+(defvar *minimum-cost* 5)
 
 (defun interrupt-thread-by-name (thread-name)
   (handler-case (bt:interrupt-thread (find thread-name
@@ -223,11 +232,6 @@
   (bt:make-thread #'tcp-reader-loop :name "tcp-reader-loop"))
 
 ;;; Timekeeping
-(defvar start-time 0)
-(defvar *seconds-paused* 0)
-(defvar *last-time-freeze* 0)
-(defvar *status-before-pause* nil)
-
 (defun start-timer ()
   (setf *start-time* (get-universal-time)
         *minutes-allowed* 0
@@ -278,9 +282,6 @@
   (bt:make-thread #'time-end-wait :name "time-end-wait"))
 
 ;;; Cost calculation/tracking
-(defvar *total-cost* 0)
-(defvar *cost-per-hour* 10)
-(defvar *minimum-cost* nil)
 (defun get-total-cost (&key minutes)
   (let* ((minutes-to-calculate (if (not (eql minutes nil))
 				   minutes
