@@ -106,8 +106,17 @@
   (defparameter *minutes-allowed* 0)
   (format t "Open time."))
 
+(defun reset-session ()
+  (setf *status* :stopped)
+  (setf *session-id* nil)
+  (setf *minutes-allowed* 0)
+  (setf *start-time* 0)
+  (setf *last-time-freeze* 0)
+  (setf *seconds-paused* 0)
+  (setf *status-before-pause* nil))
+
 (defun stop ()
-  (defparameter *status* :stopped)
+  (reset-session)
   (format t "Stopped.~&")
   (lock-screen))
 
