@@ -77,6 +77,7 @@
     :name "screen-lock"))
 
 (defun start-session (session-type)
+  (interrupt-thread-by-name "time-end-wait")
   (setf *status* session-type)
   (start-timer))
 
@@ -94,7 +95,6 @@
         (start-session :limited-time))
       (defparameter *status* :limited-time)
       (defparameter *minutes-allowed* (+ *minutes-allowed* minutes))
-      (interrupt-thread-by-name "time-end-wait")
       (start-time-end-wait)
       (format t "Added ~a minutes." minutes))
     (error 'type-error :datum minutes :expected-type 'integer)))
@@ -104,7 +104,6 @@
     (start-session :open-time))
   (defparameter *status* :open-time)
   (defparameter *minutes-allowed* 0)
-  (interrupt-thread-by-name "time-end-wait")
   (format t "Open time."))
 
 (defun stop ()
@@ -165,7 +164,7 @@
     (concatenate 'string (pop ip) "." (pop ip) "." (pop ip) "." (pop ip))))
 
 (defun get-client-data ()
-  `(:hostname ,(machine-instance)
+  `(:hostname ,*hostname*
     :ip-address ,(or (ignore-errors (usocket:get-local-address *tcp-stream*))
 		     nil)))
 
