@@ -19,7 +19,7 @@
   (bt:make-thread #'ltk:mainloop :name "ltk mainloop")
   (sleep 1)
   (wm-title *tk* "Jaganet Server")
-  
+
   ;; Main window frame
   (defparameter f
     (make-instance 'ltk:frame :master nil))
@@ -39,11 +39,11 @@
   (make-client-gui-element :time-used  'ltk:button "Time Used" label-row)
   (make-client-gui-element :start-time  'ltk:button "Start Time" label-row)
   (make-client-gui-element :end-time  'ltk:button "End Time" label-row)
-  
+
   (make-client-gui-element :limit-time  'ltk:button "Limit Time" label-row)
   (make-client-gui-element :open-time  'ltk:button "Open Time" label-row)
   (make-client-gui-element :add-time  'ltk:button "Add Time" label-row)
-  (make-client-gui-element :reduce-time  'ltk:button "Reduce Time" label-row)
+  (make-client-gui-element :transfer  'ltk:button "Transfer" label-row)
   (make-client-gui-element :pause-time  'ltk:button "Pause Time" label-row)
   (make-client-gui-element :suspend  'ltk:button "Suspend" label-row)
   (make-client-gui-element :stop-session  'ltk:button "Stop Session" label-row)
@@ -58,6 +58,11 @@
   "Creates a lambda that calls sends-message with a given message and hostname."
   `(lambda ()
      (send-message ,message ,hostname)))
+
+(defun transfer-session (from-hostname to-hostname)
+  "Transfer session data from one host to another."
+  (let ((session-data (getf (gethash from-hostname *clients*) :session-data)))
+    (send-message `(:continue-session ,session-data) to-hostname)))
 
 (defun make-client-row (hostname)
   (format t "making client row~%")
@@ -91,33 +96,57 @@
 								    (destroy t2)))))
 					  (ltk:pack l2)
 					  (ltk:pack s2)
-					  (ltk:pack b2))))
+					  (ltk:pack b2)))) 
+    (make-client-gui-element :transfer  'ltk:button "Transfer" row
+			     :command (lambda ()
+					(let* ((available-hosts nil)
+                           (tl (make-instance 'ltk:toplevel :master nil))
+					       (la (make-instance 'ltk:label :master tl :text "Transfer"))
+					       (lb (make-instance 'ltk:listbox :master tl))
+					       (ok (make-instance 'ltk:button :master tl :text "Ok"
+								  :command
+								  (lambda ()
+								      (funcall #'transfer-session hostname
+                                                                  (nth (car (listbox-get-selection lb))
+                                                                       available-hosts))
+								      (destroy tl)))))
 
-    (make-client-gui-element :reduce-time  'ltk:button "Reduce Time" row)
+                      (loop for client being the hash-values of *clients*
+                            do (setf available-hosts
+                                     (push (getf (getf client :client-data) :hostname)
+                                           available-hosts)))
+
+                      (listbox-append lb (loop for h in available-hosts
+                                               collect h))
+                      (pack la)
+                      (pack lb)
+                      (pack ok))))
+
     (make-client-gui-element :pause-time  'ltk:button "Pause Time" row)
     (make-client-gui-element :suspend  'ltk:button "Suspend" row)
-    (make-client-gui-element :stop-session  'ltk:button "Stop Session" row)
+    (make-client-gui-element :stop-session  'ltk:button "Stop Session" row
+                             :command
+                             (lambda ()
+                               (send-message '(:stop) hostname)))
     row))
-
 
 (defun grid-client-row (client-gui-row row-number)
   "Puts the supplied row to the client list grid."
-  (grid (getf client-gui-row :hostname) row-number 0 :padx 5)
-  (grid (getf client-gui-row :ip-address) row-number 1 :padx 5)
-  (grid (getf client-gui-row :status) row-number 2 :padx 5)
-  (grid (getf client-gui-row :cost) row-number 3 :padx 5)
-  (grid (getf client-gui-row :time-left) row-number 4 :padx 5)
-  (grid (getf client-gui-row :time-used) row-number 5 :padx 5)
-  (grid (getf client-gui-row :start-time) row-number 6 :padx 5)
-  (grid (getf client-gui-row :end-time) row-number 7 :padx 5)
-  (grid (getf client-gui-row :limit-time) row-number 8 :padx 5)
-  (grid (getf client-gui-row :open-time) row-number 9 :padx 5)
-  (grid (getf client-gui-row :add-time) row-number 10 :padx 5)
-  (grid (getf client-gui-row :reduce-time) row-number 11 :padx 5)
-  (grid (getf client-gui-row :pause-time) row-number 12 :padx 5)
-  (grid (getf client-gui-row :suspend) row-number 13 :padx 5)
-  (grid (getf client-gui-row :stop-session) row-number 14 :padx 5)
-
+  (grid (getf client-gui-row :hostname) row-number 0 :padx 1)
+  (grid (getf client-gui-row :ip-address) row-number 1 :padx 1)
+  (grid (getf client-gui-row :status) row-number 2 :padx 1)
+  (grid (getf client-gui-row :cost) row-number 3 :padx 1)
+  (grid (getf client-gui-row :time-left) row-number 4 :padx 1)
+  (grid (getf client-gui-row :time-used) row-number 5 :padx 1)
+  (grid (getf client-gui-row :start-time) row-number 6 :padx 1)
+  (grid (getf client-gui-row :end-time) row-number 7 :padx 1)
+  (grid (getf client-gui-row :limit-time) row-number 8 :padx 1)
+  (grid (getf client-gui-row :open-time) row-number 9 :padx 1)
+  (grid (getf client-gui-row :add-time) row-number 10 :padx 1)
+  (grid (getf client-gui-row :transfer) row-number 11 :padx 1)
+  (grid (getf client-gui-row :pause-time) row-number 12 :padx 1)
+  (grid (getf client-gui-row :suspend) row-number 13 :padx 1)
+  (grid (getf client-gui-row :stop-session) row-number 14 :padx 1)
 )
 
 (defun get-time-left (minutes-allowed seconds-used)
@@ -181,7 +210,7 @@
 
 (defun start-server ()
   "Starts the TCP server."
-  (usocket:socket-server *server-address* *server-port* #'stream-handler nil ))
+  (usocket:socket-server *server-address* *server-port* #'stream-handler nil :multi-threading t))
 
 (defun start-server-thread ()
   "Starts the TCP server in a new thread."
