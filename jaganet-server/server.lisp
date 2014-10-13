@@ -194,8 +194,10 @@
   (declare (type stream stream))
   (let* ((message (stream-read stream))
 	 (new-connection-data (getf message :new-connection)))
+    (format t "New connection~%") ;debug
     (if new-connection-data
 	(progn
+      (format t "New conn data~%") ;debug
 	  (let ((hostname (getf new-connection-data :hostname)))
 	    ;; First, register the stream with the host name
 	    (set-stream hostname stream)
