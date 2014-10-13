@@ -106,6 +106,17 @@
   (defparameter *minutes-allowed* 0)
   (format t "Open time."))
 
+(defun continue-session (session-data)
+  (if (eql *status* :stopped)
+    (progn
+      (start-session (getf session-data :status))
+      (defparameter *session-id* (getf session-data :session-id))
+      (defparameter *minutes-allowed* (getf session-data :minutes-allowed))
+      (defparameter *start-time* (getf session-data :start-time))
+      (defparameter *last-time-freeze* (getf session-data :last-time-freeze))
+      (defparameter *seconds-paused* (getf session-data :seconds-paused))
+      (defparameter *status-before-pause* (getf session-data :status-before-pause)))))
+
 (defun reset-session ()
   (setf *status* :stopped)
   (setf *session-id* nil)
@@ -214,6 +225,7 @@
 	    (msg-param (cadr message)))
 	(cond ((eql msg-type :add-time) (add-time msg-param))
 	      ((eql msg-type :open-time) (open-time))
+	      ((eql msg-type :continue-session) (continue-session msg-param))
 	      ((eql msg-type :stop) (stop))))
     (type-error () "Ignore messages that aren't lists."
                 (format t "Invalid message received: ~a~%"
