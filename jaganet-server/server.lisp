@@ -238,19 +238,21 @@
 
 (defun update-client-record (hostname client-data session-data)
   "Updates the client record from :status-update messages. Also updates the client row on the server window."
+  (format t "Update client record for host: ~a~%" hostname) ;debug
   (setf (getf (gethash hostname *clients*) :client-data) client-data)
   (setf (getf (gethash hostname *clients*) :session-data) session-data)
-  (grid-client-row (getf (gethash hostname *clients*) :client-row) 13)
   (update-client-row hostname))
 
 (defun new-client-record (client-data session-data)
   "Makes a new client record. Also makes a new client row on the server window."
   (let ((hostname (getf client-data :hostname)))
+    (format t "New client record for host: ~a~%" hostname) ;debug
     (setf (gethash hostname *clients*) '())
     (setf (getf (gethash hostname *clients*) :client-data) client-data)
     (setf (getf (gethash hostname *clients*) :session-data) session-data)
     (setf (getf (gethash hostname *clients*) :client-row) (make-client-row hostname))
-    (grid-client-row (getf (gethash hostname *clients*) :client-row) 13)
+    (grid-client-row (getf (gethash hostname *clients*) :client-row)
+                     (+ 1 (hash-table-count *clients*)))
     (update-client-row hostname)))
 
 (defun format-time (seconds)
