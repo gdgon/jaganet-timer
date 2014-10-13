@@ -88,6 +88,17 @@
 
 ;;; Client commands
 
+(defun limit-time (minutes)
+  (if (numberp minutes)
+    (progn
+      (when (eql *status* :stopped)
+        (start-session :limited-time))
+      (defparameter *status* :limited-time)
+      (defparameter *minutes-allowed* minutes)
+      (start-time-end-wait)
+      (format t "Limited to ~a minutes." minutes))
+    (error 'type-error :datum minutes :expected-type 'integer)))
+
 (defun add-time (minutes)
   (if (numberp minutes)
     (progn
@@ -198,7 +209,9 @@
       :start-time ,*start-time*
       :last-time-freeze ,*last-time-freeze*
       :seconds-used ,(get-seconds-used)
-      :seconds-paused ,*seconds-paused*))
+      :seconds-paused ,*seconds-paused*
+      ))
+      ;:status-before-pause *status-before-pause*))
 
 (defun get-status-data ()
   `(:client-data ,(get-client-data) :session-data ,(get-session-state)))
