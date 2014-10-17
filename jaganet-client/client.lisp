@@ -12,6 +12,28 @@
 (defvar *config-file* "config")
 (defvar *hostname* (machine-instance))
 
+(defun get-formatted-date ()
+  "Returns the date as a string in the format YYYY-MM-DD"
+  (multiple-value-bind
+        (second minute hour date month year day-of-week dst-p tz)
+        (get-decoded-time)
+        (concatenate 'string (write-to-string year) "-"
+                             (write-to-string month) "-"
+                             (write-to-string date))))
+
+(defun get-formatted-time ()
+  "Returns the time as a string in the format HH:MM:SS"
+  (multiple-value-bind
+        (second minute hour date month year day-of-week dst-p tz)
+        (get-decoded-time)
+        (concatenate 'string (write-to-string hour) ":"
+                             (write-to-string minute) ":"
+                             (write-to-string second))))
+(defun make-session-id ()
+  (concatenate 'string (machine-instance) "::"
+                       (get-formatted-date) "::"
+                       (get-formatted-time)))
+
 ;; Session data
 (defvar *status* :stopped)
 (defvar *session-id* nil)
@@ -69,64 +91,14 @@
         *server-port* (getf config ':server-port)))
 
 (defun lock-screen ()
-  (format t "Locking screen.~&")
+  (ignore-errors (delete-file "active.lck"))
   (bt:make-thread
     (lambda ()
       (loop while (eql *status* :stopped)
-        do (progn #+mswindows(process-desktop "lockScreen" "C:/windows/system32/calc.exe"))))
+        do (progn (process-desktop "lockScreen" "lock-window.exe")
+        (format t "Locking screen.~&")
+        (sleep 1))))
     :name "screen-lock"))
-
-(defun start-session (session-type)
-  (interrupt-thread-by-name "time-end-wait")
-  (setf *status* session-type)
-  (start-timer))
-
-(defun stop-session ()
-  (setf *last-time-freeze* (get-universal-time)
-        *status* :stopped)
-  (lock-screen))
-
-;;; Client commands
-
-(defun limit-time (minutes)
-  (if (numberp minutes)
-    (progn
-      (when (eql *status* :stopped)
-        (start-session :limited-time))
-      (defparameter *status* :limited-time)
-      (defparameter *minutes-allowed* minutes)
-      (start-time-end-wait)
-      (format t "Limited to ~a minutes." minutes))
-    (error 'type-error :datum minutes :expected-type 'integer)))
-
-(defun add-time (minutes)
-  (if (numberp minutes)
-    (progn
-      (when (eql *status* :stopped)
-        (start-session :limited-time))
-      (defparameter *status* :limited-time)
-      (defparameter *minutes-allowed* (+ *minutes-allowed* minutes))
-      (start-time-end-wait)
-      (format t "Added ~a minutes." minutes))
-    (error 'type-error :datum minutes :expected-type 'integer)))
-
-(defun open-time ()
-  (if (eql *status* :stopped)
-    (start-session :open-time))
-  (defparameter *status* :open-time)
-  (defparameter *minutes-allowed* 0)
-  (format t "Open time."))
-
-(defun continue-session (session-data)
-  (if (eql *status* :stopped)
-    (progn
-      (start-session (getf session-data :status))
-      (defparameter *session-id* (getf session-data :session-id))
-      (defparameter *minutes-allowed* (getf session-data :minutes-allowed))
-      (defparameter *start-time* (getf session-data :start-time))
-      (defparameter *last-time-freeze* (getf session-data :last-time-freeze))
-      (defparameter *seconds-paused* (getf session-data :seconds-paused))
-      (defparameter *status-before-pause* (getf session-data :status-before-pause)))))
 
 (defun reset-session ()
   (setf *status* :stopped)
@@ -137,10 +109,108 @@
   (setf *seconds-paused* 0)
   (setf *status-before-pause* nil))
 
-(defun stop ()
+(defun start-session (session-type)
+  "start-session should be called when changing status from :stopped to open/limited time."
+  ;; Unlock the screen
+  (open "active.lck" :direction :probe :if-does-not-exist :create)
+  ;; Set global variables to 0 or nil
   (reset-session)
-  (format t "Stopped.~&")
-  (lock-screen))
+  ;; Set session variables, including session-id
+  (setf *status* session-type
+        *start-time* (get-universal-time)
+        *session-id* (make-session-id)))
+
+;;; Client commands
+
+(defun limit-time (minutes)
+  (if (not (eql *status* :unpaid))
+    (if (numberp minutes)
+      (progn
+        (if (eql *status* :stopped)
+          ;; Start a new session
+          (start-session :limited-time)
+          ;; Otherwise, continue the session, just change the status
+          (defparameter *status* :limited-time))
+        (defparameter *minutes-allowed* minutes)
+        (format t "Limited to ~a minutes." minutes))
+      (error 'type-error :datum minutes :expected-type 'integer))))
+
+(defun add-time (minutes)
+  (if (not (eql *status* :unpaid))
+    (if (numberp minutes)
+      (progn
+        (if (eql *status* :stopped)
+          ;; Start a new session
+          (start-session :limited-time)
+          ;; Otherwise, continue the session, just change the status
+          (defparameter *status* :limited-time))
+        (defparameter *minutes-allowed* (+ *minutes-allowed* minutes))
+        (format t "Added ~a minutes." minutes))
+      (error 'type-error :datum minutes :expected-type 'integer))))
+
+(defun open-time ()
+  (if (not (eql *status* :unpaid))
+    (progn
+      (if (eql *status* :stopped)
+         ;; Start a new session
+        (start-session :open-time)
+         ;; Otherwise, continue the session, just change the status
+        (setf *status* :open-time
+              *minutes-allowed* 0))
+      (format t "Open time.~%"))))
+
+(defun continue-session (session-data)
+  (if (not (eql *status* :unpaid))
+    (if (eql *status* :stopped)
+      (progn
+        (format t "Continuing session: ~a~%" session-data)
+        ;(start-session (getf session-data :status))
+        (defparameter *status* (getf session-data :status))
+        (defparameter *session-id* (getf session-data :session-id))
+        (defparameter *minutes-allowed* (getf session-data :minutes-allowed))
+        (defparameter *start-time* (getf session-data :start-time))
+        (defparameter *last-time-freeze* (getf session-data :last-time-freeze))
+        (defparameter *seconds-paused* (getf session-data :seconds-paused))
+        (defparameter *status-before-pause* (getf session-data :status-before-pause))
+        ))))
+
+(defun stop ()
+  "Stops the current session immediately."
+  (reset-session)
+  (setf *status* :stopped)
+  (lock-screen)
+  (format t "Stopped!!~%"))
+
+(defun stop-unpaid ()
+  "Stops the current session and marks changes the status to :unpaid. If a limited-time session was stopped before all *minutes-allowed* are used, reduce *minutes-allowed* to the current number of minutes used, so the customer will not be charged for the minutes they didn't use."
+  (if (or (eql *status* :open-time)
+          (eql *status* :limited-time))
+    (progn
+      ;; If limited time, do not add unused minutes to cost calculation
+      (if (eql *status* :limited-time)
+        (setf *minutes-allowed* (truncate (/ (get-seconds-used) 60))))
+      ;; Freeze and set the status to :unpaid
+      (setf *last-time-freeze* (get-universal-time)
+            *status* :unpaid)
+      (lock-screen)))
+  (if (eql *status* :paused)
+    ;; If *status-before-pause* is limited time, do not add unused minutes to cost calculation
+    (if (eql *status-before-pause* :limited-time)
+      (setf *minutes-allowed* (truncate (/ (get-seconds-used) 60))))
+    (setf *status* :unpaid)))
+
+(defun collect ()
+  (stop-session))
+
+(defun stop-session ()
+  (setf *last-time-freeze* (get-universal-time)
+        *status* :stopped)
+  (lock-screen)
+  (format t "Stopped.~%"))
+
+(defun shutdown ()
+  (format t "Shutting down.~%")
+  (sb-ext:run-program "shutdown.exe" '("/p" "/f") :search t))
 
 ;;; Network
 ;; Copied from https://github.com/ciaranbradley/land-of-lisp-chap-12-usocket
@@ -166,7 +236,8 @@
 			    *server-address* *server-port*))
 	(if *tcp-stream*
 	    (progn
-	      (stream-print `(:new-connection ,(get-client-data)))
+	      (stream-print `(:new-connection ,(append (get-client-data)
+                                                   `(:status ,*status*))))
 	      (setf *connected-to-server* t))))
     (connection-refused-error () (setf *connected-to-server* nil))))
 
@@ -174,20 +245,20 @@
   "Checks if *connected-to-server* is t. Invokes try-to-connect-to-server if it isn't. Also invokes send-session-state if currently connected."
   (handler-case
       (loop
-	 (if *connected-to-server*
-	     ;; Send status update if connected to server
-	     (send-status-update)
-	     ;; Try to connect. Update the connection status on the client window if successful.
-	     (loop
-		unless *connected-to-server*
-		do
-		  (try-to-connect-to-server)
-		  (sleep 1)
-		  (if *connected-to-server*
-		      (progn
-			(setf (text connection-status-label) "Connected")
-			(return)))))
-	 (sleep 5))
+     (if *connected-to-server*
+         ;; Send status update if connected to server
+         (send-status-update)
+         ;; Try to connect. Update the connection status on the client window if successful.
+         (loop
+        unless *connected-to-server*
+        do
+          (try-to-connect-to-server)
+          (sleep 1)
+          (if *connected-to-server*
+              (progn
+            (setf (text connection-status-label) "Connected")
+            (return)))))
+     (sleep 1))
     (shutting-down ())))
 
 (defun ip-byte-array-to-string (ip-byte-array)
@@ -210,8 +281,7 @@
       :last-time-freeze ,*last-time-freeze*
       :seconds-used ,(get-seconds-used)
       :seconds-paused ,*seconds-paused*
-      ))
-      ;:status-before-pause *status-before-pause*))
+      :status-before-pause ,*status-before-pause*))
 
 (defun get-status-data ()
   `(:client-data ,(get-client-data) :session-data ,(get-session-state)))
@@ -237,9 +307,15 @@
       (let ((msg-type (car message))
 	    (msg-param (cadr message)))
 	(cond ((eql msg-type :add-time) (add-time msg-param))
+	      ((eql msg-type :limit-time) (limit-time msg-param))
 	      ((eql msg-type :open-time) (open-time))
+	      ((eql msg-type :pause) (pause))
+	      ((eql msg-type :unpause) (unpause))
 	      ((eql msg-type :continue-session) (continue-session msg-param))
-	      ((eql msg-type :stop) (stop))))
+	      ((eql msg-type :collect) (collect))
+	      ((eql msg-type :stop) (stop))
+	      ((eql msg-type :stop-unpaid) (stop-unpaid))
+	      ((eql msg-type :shutdown) (shutdown))))
     (type-error () "Ignore messages that aren't lists."
                 (format t "Invalid message received: ~a~%"
                         (write-to-string message)))))
@@ -248,15 +324,15 @@
   (handler-case
     (loop
        (if *connected-to-server*
-	   (handler-case
-	       (process-message (stream-read))
-	     (end-of-file () (progn
-			       (setf *connected-to-server* nil)
-			       (setf (text connection-status-label) "Disconnected")
-			       ))
-	     (simple-stream-error () (progn
-				       (setf *connected-to-server* nil)
-				       (setf (text connection-status-label) "Disconnected")))))
+       (handler-case
+           (process-message (stream-read))
+         (end-of-file () (progn
+                   (setf *connected-to-server* nil)
+                   (setf (text connection-status-label) "Disconnected")
+                   ))
+         (simple-stream-error () (progn
+                       (setf *connected-to-server* nil)
+                       (setf (text connection-status-label) "Disconnected")))))
        (sleep 1))
     (shutting-down ())))
 
@@ -265,19 +341,13 @@
   (bt:make-thread #'tcp-reader-loop :name "tcp-reader-loop"))
 
 ;;; Timekeeping
-(defun start-timer ()
-  (setf *start-time* (get-universal-time)
-        *minutes-allowed* 0
-        *last-time-freeze* nil
-        *seconds-paused* 0))
-
-(defun pause-timer ()
-  (unless (or (eql *status* :paused) (eql *status* :stopped))
+(defun pause ()
+  (unless (or (eql *status* :paused))
     (setf *status-before-pause* *status*)
     (setf *status* :paused)
     (setf *last-time-freeze* (get-universal-time))))
 
-(defun unpause-timer ()
+(defun unpause ()
   (when (eql *status* :paused)
     (setf *status* *status-before-pause*)
     (setf *seconds-paused* (+ *seconds-paused*
@@ -285,7 +355,9 @@
 
 (defun get-seconds-used ()
   (let ((total-seconds-paused
-          (if (or (eql *status* :paused) (eql *status* :stopped))
+          (if (or (eql *status* :paused)
+                  (eql *status* :stopped)
+                  (eql *status* :unpaid))
             (+ *seconds-paused* (- (get-universal-time) *last-time-freeze*))
             *seconds-paused*)))
     (- (- (get-universal-time) *start-time*)
@@ -304,11 +376,11 @@
 
 (defun time-end-wait ()
   (handler-case
-    (progn
-      (loop while (>= (- (* 60 *minutes-allowed*) (get-seconds-used))
-                   0)
-            do (sleep 1))
-      (stop-session))
+    (loop
+      (sleep 1)
+      (if (and (eql *status* :limited-time)
+               (<= (- (* 60 *minutes-allowed*) (get-seconds-used)) -1))
+        (stop-unpaid)))
     (shutting-down () )))
 
 (defun start-time-end-wait ()
@@ -317,18 +389,22 @@
 ;;; Cost calculation/tracking
 (defun get-total-cost (&key minutes)
   (let* ((minutes-to-calculate (if (not (eql minutes nil))
-				   minutes
-				   (/ (get-seconds-used) 60)))
+                   minutes
+                   (/ (get-seconds-used) 60)))
          (cost (* (/ *cost-per-hour* 60) minutes-to-calculate)))
-    (if (and *minimum-cost* (< cost *minimum-cost*))
-	(coerce *minimum-cost* 'float)
-	(coerce cost 'float))))
+    (truncate (if (and *minimum-cost* (< cost *minimum-cost*))
+                *minimum-cost*
+                cost))))
 
 ;;; GUI
 
 (defun client-window ()
   (start-wish)
     (wm-title *tk* "Jaganet Client")
+    ;(set-wm-overrideredirect *tk* 1)
+    (set-geometry *tk* 100 180
+                       (- (screen-width) 125)
+                       (- (screen-height) 220))
     (defparameter f
              (make-instance 'ltk:frame
                              :master nil))
@@ -362,7 +438,7 @@
                             :master f
                             :text "Logout"))
 
-    (on-close *tk* (lambda () (format t "Closed")))
+    ;(on-close *tk* (lambda () (format t "Closed")))
 
       (pack f)
       (pack status-label)
@@ -414,8 +490,11 @@
 ;;;
 
 (defun main ()
-  #+mswindows(cffi::load-foreign-library "WinLockDll.dll")
+  ;(cffi::load-foreign-library "WinLockDll.dll")
   (set-config (read-config-from-file "config"))
+  (start-client-window)
+  (start-time-end-wait)
+  (sleep 1)
   (start-network-monitor)
-  (start-tcp-reader)
-  (start-client-window))
+  (sleep 1)
+  (start-tcp-reader))
