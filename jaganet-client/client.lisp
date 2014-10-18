@@ -96,8 +96,8 @@
     (lambda ()
       (loop while (eql *status* :stopped)
         do (progn (process-desktop "lockScreen" "lock-window.exe")
-        (format t "Locking screen.~&")
-        (sleep 1))))
+                  (format t "Locking screen.~&")
+                  (sleep 2))))
     :name "screen-lock"))
 
 (defun reset-session ()
@@ -438,7 +438,7 @@
                             :master f
                             :text "Logout"))
 
-    ;(on-close *tk* (lambda () (format t "Closed")))
+    (on-close *tk* (lambda () (format t "Closed")))
 
       (pack f)
       (pack status-label)
@@ -487,14 +487,21 @@
   (client-window)
   (bt:make-thread #'update-client-window :name "update-client-window"))
 
+(defun build-exe ()
+  (sb-ext:save-lisp-and-die "client.exe" :toplevel #'main
+                                              :executable t
+                                              :application-type :gui))
+
 ;;;
 
 (defun main ()
-  ;(cffi::load-foreign-library "WinLockDll.dll")
+  (cffi::load-foreign-library "WinLockDll.dll")
+  (lock-screen)
   (set-config (read-config-from-file "config"))
   (start-client-window)
   (start-time-end-wait)
   (sleep 1)
   (start-network-monitor)
   (sleep 1)
-  (start-tcp-reader))
+  (start-tcp-reader)
+  (mainloop))
