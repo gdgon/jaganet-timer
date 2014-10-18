@@ -31,6 +31,8 @@
 (defvar *streams* (make-hash-table :test #'equalp))
 (add-lock :streams)
 
+(add-lock :log)
+
 ;; Misc
 (defun transfer-stop-worker (source target)
   "When a transfer command is sent, waits until the target client has continued the original session then stops the session at the source client."
@@ -714,6 +716,10 @@
               :end-time))
         (decode-time-to-string end-time)))))
 
+(defun build-exe ()
+  (sb-ext:save-lisp-and-die "server.exe" :toplevel #'main
+                                         :executable t
+                                         :application-type :gui))
 
 (defun main ()
   (server-window)
