@@ -739,8 +739,8 @@
 
 (defun build-exe ()
   (sb-ext:save-lisp-and-die "server.exe" :toplevel #'main
-                                         :executable t
-                                         :application-type :gui))
+                                         :executable t))
+                                         ;:application-type :gui))
 
 (defun main ()
   (start-server-thread)

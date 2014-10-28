@@ -206,7 +206,24 @@
   (setf *last-time-freeze* (get-universal-time)
         *status* :stopped)
   (lock-screen)
-  (format t "Stopped.~%"))
+  (format t "Stopped.~%")
+  ;; close all running programs
+
+  (sb-ext:run-program "taskkill.exe" '("/F"
+                                       "/FI" "imagename ne explorer.exe"
+                                       "/FI" "imagename ne lock-window.exe"
+                                       "/FI" "imagename ne jaganet.exe"
+                                       "/FI" "imagename ne wish.exe")
+                      :input nil :output t :search t)
+
+  (sb-ext:run-program "taskkill.exe" '("/F"
+                                       "/FI" "imagename ne explorer.exe"
+                                       "/FI" "imagename ne lock-window.exe"
+                                       "/FI" "imagename ne jaganet*"
+                                       "/FI" "imagename ne wish.exe")
+                      :input nil :output t :search t)
+  ;; clear browser data
+  (sb-ext:run-program "cmd.exe" '("/K" "clear-browser-data.bat") :input nil :output t :search t))
 
 (defun shutdown ()
   (format t "Shutting down.~%")
