@@ -33,15 +33,6 @@
 
 (add-lock :log)
 
-(defun interrupt-thread-by-name (thread-name)
-  (handler-case (bt:interrupt-thread (find thread-name
-                                           (bt:all-threads)
-                                           :test #'string-equal
-                                           :key #'bt:thread-name)
-                                     #'(lambda ()
-                                         (signal 'shutting-down)))
-    (type-error () nil)))
-
 ;; Misc
 (defun transfer-stop-worker (source target)
   "When a transfer command is sent, waits until the target client has continued the original session then stops the session at the source client."
@@ -54,14 +45,6 @@
         (format t "stop source")
         (return))
       (sleep 1))))
-
-;; Thead management
-(define-condition shutting-down (error)
-  ())
-
-(defun shutdown ()
-  (format t "Shutting down.~%")
-  (sb-ext:run-program "shutdown.exe" '("/p" "/f") :search t))
 
 (defun start-transfer-stop-worker (source target)
         (format t "stop source")
@@ -192,68 +175,71 @@
 
 (defun server-window ()
   "Create the server window."
-  (with-ltk ()
-   (wm-title *tk* "Jaganet Server")
-   (on-close *tk* (lambda () (exit)))
+  (start-wish)
+  (sleep 1)
+  "Run the ltk mainloop event handler in a separate thread."
+  ;(bt:make-thread #'ltk:mainloop :name "ltk mainloop")
+  (sleep 1)
+  (wm-title *tk* "Jaganet Server")
 
-   ;; Main window frame
-   (defparameter f
-     (make-instance 'ltk:frame :master nil))
+  ;; Main window frame
+  (defparameter f
+    (make-instance 'ltk:frame :master nil))
 
-   ;; Frame for client list and labels. Elements will be in a grid.
-   (defparameter client-list-frame
-     (make-instance 'ltk:frame :master f))
+  ;; Frame for client list and labels. Elements will be in a grid.
+  (defparameter client-list-frame
+    (make-instance 'ltk:frame :master f))
 
-   ;; Labels for the client list. This will be row 0.
-   (defparameter label-row ())
+  ;; Labels for the client list. This will be row 0.
+  (defparameter label-row ())
 
-   (make-client-gui-element :hostname  'ltk:button "Hostname" label-row
-                            :command
-                            (lambda ()
-                              (rearrange-client-rows #'string< #'key-hostname)))
-   (make-client-gui-element :ip-address  'ltk:button "IP Address" label-row
-                            :command
-                            (lambda ()
-                              (rearrange-client-rows #'string< #'key-ip-address)))
-   (make-client-gui-element :status  'ltk:button "Status" label-row
-                            :command
-                            (lambda ()
-                              (rearrange-client-rows #'string< #'key-status)))
-   (make-client-gui-element :cost 'ltk:button "Cost" label-row
-                            :command
-                            (lambda ()
-                              (rearrange-client-rows #'< #'key-cost)))
-   (make-client-gui-element :time-left  'ltk:button "Time Left" label-row
-                            :command
-                            (lambda ()
-                              (rearrange-client-rows #'< #'key-time-left)))
-   (make-client-gui-element :time-used  'ltk:button "Time Used" label-row
-                            :command
-                            (lambda ()
-                              (rearrange-client-rows #'< #'key-seconds-used)))
-   (make-client-gui-element :start-time  'ltk:button "Start Time" label-row
-                            :command
-                            (lambda ()
-                              (rearrange-client-rows #'< #'key-start-time)))
-   (make-client-gui-element :end-time  'ltk:button "End Time" label-row
-                            :command
-                            (lambda ()
-                              (rearrange-client-rows #'< #'key-end-time)))
+  (make-client-gui-element :hostname  'ltk:button "Hostname" label-row
+                           :command
+                           (lambda ()
+                             (rearrange-client-rows #'string< #'key-hostname)))
+  (make-client-gui-element :ip-address  'ltk:button "IP Address" label-row
+                           :command
+                           (lambda ()
+                             (rearrange-client-rows #'string< #'key-ip-address)))
+  (make-client-gui-element :status  'ltk:button "Status" label-row
+                           :command
+                           (lambda ()
+                             (rearrange-client-rows #'string< #'key-status)))
+  (make-client-gui-element :cost 'ltk:button "Cost" label-row
+                           :command
+                           (lambda ()
+                             (rearrange-client-rows #'< #'key-cost)))
+  (make-client-gui-element :time-left  'ltk:button "Time Left" label-row
+                           :command
+                           (lambda ()
+                             (rearrange-client-rows #'< #'key-time-left)))
+  (make-client-gui-element :time-used  'ltk:button "Time Used" label-row
+                           :command
+                           (lambda ()
+                             (rearrange-client-rows #'< #'key-seconds-used)))
+  (make-client-gui-element :start-time  'ltk:button "Start Time" label-row
+                           :command
+                           (lambda ()
+                             (rearrange-client-rows #'< #'key-start-time)))
+  (make-client-gui-element :end-time  'ltk:button "End Time" label-row
+                           :command
+                           (lambda ()
+                             (rearrange-client-rows #'< #'key-end-time)))
 
-   ;(make-client-gui-element :limit-time  'ltk:button "Limit Time" label-row)
-   ;(make-client-gui-element :open-time  'ltk:button "Open Time" label-row)
-   ;(make-client-gui-element :add-time  'ltk:button "Add Time" label-row)
-   ;(make-client-gui-element :transfer  'ltk:button "Transfer" label-row)
-   ;(make-client-gui-element :pause  'ltk:button "Pause" label-row)
-   ;(make-client-gui-element :unpause  'ltk:button "Unpause" label-row)
-   ;(make-client-gui-element :collect  'ltk:button "Collect" label-row)
-   ;(make-client-gui-element :stop-session  'ltk:button "Stop Session" label-row)
+  ;(make-client-gui-element :limit-time  'ltk:button "Limit Time" label-row)
+  ;(make-client-gui-element :open-time  'ltk:button "Open Time" label-row)
+  ;(make-client-gui-element :add-time  'ltk:button "Add Time" label-row)
+  ;(make-client-gui-element :transfer  'ltk:button "Transfer" label-row)
+  ;(make-client-gui-element :pause  'ltk:button "Pause" label-row)
+  ;(make-client-gui-element :unpause  'ltk:button "Unpause" label-row)
+  ;(make-client-gui-element :collect  'ltk:button "Collect" label-row)
+  ;(make-client-gui-element :stop-session  'ltk:button "Stop Session" label-row)
 
-   (grid-label-row label-row 0)
+  (grid-label-row label-row 0)
 
-   (pack f)
-   (pack client-list-frame)
-))
+  (pack f)
+  (pack client-list-frame)
+)
 
 (defmacro make-button-send-command (message hostname)
   "Creates a lambda that calls sends-message with a given message and hostname."
@@ -607,9 +593,7 @@
 
 (defun start-server ()
   "Starts the TCP server."
-  (handler-case
-    (usocket:socket-server *server-address* *server-port* #'stream-handler nil :multi-threading t)
-    (shutting-down ())))
+  (usocket:socket-server *server-address* *server-port* #'stream-handler nil :multi-threading t))
 
 (defun start-server-thread ()
   "Starts the TCP server in a new thread."
@@ -732,18 +716,13 @@
               :end-time))
         (decode-time-to-string end-time)))))
 
-(defun exit ()
-  (interrupt-thread-by-name "Server")
-  (destroy *tk*)
-  (setf *exit-mainloop* t))
-
 (defun build-exe ()
   (sb-ext:save-lisp-and-die "server.exe" :toplevel #'main
-                                         :executable t))
-                                         ;:application-type :gui))
+                                         :executable t
+                                         :application-type :gui))
 
 (defun main ()
+  (server-window)
   (start-server-thread)
-  (server-window))
-  ;(mainloop))
+  (mainloop))
   ;(bt:make-thread #'ltk:mainloop :name "ltk mainloop")
