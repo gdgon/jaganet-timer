@@ -94,7 +94,8 @@
   (ignore-errors (delete-file "active.lck"))
   (bt:make-thread
     (lambda ()
-      (loop while (eql *status* :stopped)
+      (loop while (or (eql *status* :stopped)
+                      (eql *status* :unpaid))
         do (progn (process-desktop "lockScreen" "lock-window.exe")
                   (format t "Locking screen.~&")
                   (sleep 2))))
