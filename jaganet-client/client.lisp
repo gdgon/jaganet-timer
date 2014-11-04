@@ -396,7 +396,7 @@
     (loop
       (sleep 1)
       (if (and (eql *status* :limited-time)
-               (<= (- (* 60 *minutes-allowed*) (get-seconds-used)) -1))
+               (<= (- (* 60 *minutes-allowed*) (get-seconds-used)) 0))
         (stop-unpaid)))
     (shutting-down () )))
 
