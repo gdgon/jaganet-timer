@@ -352,7 +352,7 @@
 
                         (loop for client being the hash-values of *clients*
                               do (setf available-hosts
-                                       (push (get-client-data client :hostname)
+                                       (push (get-client-property client :hostname)
                                              available-hosts)))
 
                         (listbox-append lb (loop for h in available-hosts
